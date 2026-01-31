@@ -171,8 +171,8 @@ export default function POS() {
 
     // Header (store name + address)
     output += 'SIMPLIGROUNDS\n'
-    output += '#9 San Francisco St. Phase 6\n'
-    output += 'Pacita 1, San Pedro Laguna\n'
+    output += '#9 San Francisco St. Phase 2\n'
+    output += 'Brgy Pacita 1, San Pedro City Laguna\n'
     output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
     output += right('POS: SIMPLIGROUNDS', '') + '\n'
     output += '\n'
@@ -180,7 +180,6 @@ export default function POS() {
     output += right('Dine in', '') + '\n'
     output += '--------------------------------\n'
     output += 'Drinks\n'
-    output += '\n'
     // Items
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
