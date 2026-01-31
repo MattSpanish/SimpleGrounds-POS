@@ -33,8 +33,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Set base path for a repository-scoped GitHub Pages site
-          BASE_URL: '/SimpleGrounds-POS/'
+          # Custom domain serves from root
+          BASE_URL: '/'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
