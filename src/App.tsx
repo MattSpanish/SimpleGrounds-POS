@@ -159,22 +159,35 @@ export default function POS() {
 
     const encoder = new TextEncoder()
     let output = ''
+    const width = 32
+    const currency = (n: number) => `₱${n.toFixed(2)}`
+    const right = (leftText: string, rightText: string) => {
+      const left = leftText.length > width ? leftText.slice(0, width) : leftText
+      const pad = Math.max(1, width - left.length - rightText.length)
+      return left + ' '.repeat(pad) + rightText
+    }
 
-    output += '   SIMPLI GROUNDS RECEIPT\n'
-    output += '#9 San Francisco St. Phase 6\n'
-    output += 'Pacita 1, San Pedro Laguna\n'
-    output += '-----------------------------\n'
+    // Header (match sample style)
+    output += 'SIMPLIGROUNDS\n'
+    output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
+    output += right('POS: SIMPLIGROUNDS', '') + '\n'
+    output += '--------------------------------\n'
+    output += right('Dine in', '') + '\n'
+    output += '--------------------------------\n'
 
+    // Items
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
       const addonsTotal = Object.entries(ci.addons)
         .filter(([, v]) => v)
         .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
-      const line = (base + addonsTotal) * ci.qty
-      output += `${ci.item.name} (${ci.size}) x${ci.qty}  P${line}\n`
+      const unit = base + addonsTotal
+      const line = unit * ci.qty
+      output += right(ci.item.name, currency(line)) + '\n'
+      output += `${ci.qty} x ${currency(unit)}\n`
     })
 
-    output += '-----------------------------\n'
+    output += '--------------------------------\n'
     const subtotal = cart.reduce((sum, ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
       const addonsTotal = Object.entries(ci.addons)
@@ -199,9 +212,21 @@ export default function POS() {
         )
       : 0
     const total = Math.max(0, subtotal - discountAmt)
-    output += `SUBTOTAL: P${subtotal}\n`
-    if (discount10) output += `DISCOUNT 10%: -P${discountAmt}\n`
-    output += `TOTAL: P${total}\n`
+    // Totals and payment line
+    output += right('Total', currency(total)) + '\n\n'
+    output += right(paymentType.charAt(0).toUpperCase() + paymentType.slice(1), currency(total)) + '\n'
+
+    // Date/time footer (dd/mm/yyyy hh:mm am/pm)
+    const dt = new Date()
+    const dd = String(dt.getDate()).padStart(2, '0')
+    const mm = String(dt.getMonth() + 1).padStart(2, '0')
+    const yyyy = dt.getFullYear()
+    const hours = dt.getHours()
+    const ampm = hours >= 12 ? 'pm' : 'am'
+    const hh = String(((hours + 11) % 12) + 1).padStart(2, '0')
+    const min = String(dt.getMinutes()).padStart(2, '0')
+    output += `\n${dd}/${mm}/${yyyy} ${hh}:${min} ${ampm}\n`
+
     output += '\nThank you!\n\n\n'
 
     try {
