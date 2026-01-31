@@ -27,20 +27,53 @@ export default function POS() {
 
   const connectPrinter = async () => {
     try {
-      const device = await (navigator as any).bluetooth.requestDevice({
+      const navAny = navigator as any
+      if (!navAny.bluetooth) {
+        alert('This browser does not support Web Bluetooth. Try Chrome.')
+        return
+      }
+
+      // Common BLE UART-style services used by thermal printers
+      const knownServices: Array<{ service: number | string; characteristic: number | string }> = [
+        // TI/HM-10 style
+        { service: 0xffe0, characteristic: 0xffe1 },
+        { service: '0000ffe0-0000-1000-8000-00805f9b34fb', characteristic: '0000ffe1-0000-1000-8000-00805f9b34fb' },
+        // Nordic UART
+        { service: '6e400001-b5a3-f393-e0a9-e50e24dcca9e', characteristic: '6e400002-b5a3-f393-e0a9-e50e24dcca9e' },
+        // Some SPP-over-BLE implementations
+        { service: '49535343-fe7d-4ae5-8fa9-9fafd205e455', characteristic: '49535343-8841-43f4-a8d4-ecbe34729bb3' },
+      ]
+
+      const device = await navAny.bluetooth.requestDevice({
         acceptAllDevices: true,
-        optionalServices: [0x1812],
+        optionalServices: knownServices.map((s) => s.service),
       })
 
       const server = await device.gatt!.connect()
-      const service = await server.getPrimaryService(0x1812)
-      const characteristic = await service.getCharacteristic(0x2a56)
 
-      setPrinter(characteristic)
+      let writable: BluetoothRemoteGATTCharacteristic | null = null
+      for (const pair of knownServices) {
+        try {
+          const service = await server.getPrimaryService(pair.service)
+          const ch = await service.getCharacteristic(pair.characteristic)
+          writable = ch
+          break
+        } catch {
+          // try next service
+        }
+      }
+
+      if (!writable) {
+        alert('Connected, but no writable characteristic found. Your printer may not support BLE printing via Web Bluetooth or uses Classic Bluetooth (SPP). If it is the SDXP/XP-210, enable BLE mode or use USB/Wi‑Fi.')
+        return
+      }
+
+      setPrinter(writable)
       alert('Printer connected!')
     } catch (err) {
       console.error(err)
-      alert('Failed to connect printer:')
+      const msg = (err as any)?.message ?? 'Unknown error'
+      alert(`Failed to connect printer: ${msg}`)
     }
   }
 
