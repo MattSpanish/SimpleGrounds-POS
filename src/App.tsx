@@ -4,10 +4,12 @@ import Menu from './components/Menu'
 import Cart from './components/Cart'
 import type { CartItem } from './components/Cart'
 import type { DrinkSize, MenuItem } from './types/menu'
+import { MENU_SECTIONS } from './data/menu'
 
 export default function POS() {
   const [printer, setPrinter] = useState<BluetoothRemoteGATTCharacteristic | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
+  const [discount10, setDiscount10] = useState<boolean>(false)
 
   // Persist cart for friendlier experience
   useEffect(() => {
@@ -86,6 +88,8 @@ export default function POS() {
   const toggleAddon = (index: number, addonId: string) =>
     setCart((prev) => prev.map((ci, i) => (i === index ? { ...ci, addons: { ...ci.addons, [addonId]: !ci.addons[addonId] } } : ci)))
 
+  const toggleDiscount = () => setDiscount10((d) => !d)
+
   const printReceipt = async () => {
     if (!printer) return alert('Connect to printer first.')
 
@@ -105,14 +109,33 @@ export default function POS() {
     })
 
     output += '-----------------------------\n'
-    const total = cart.reduce((sum, ci) => {
+    const subtotal = cart.reduce((sum, ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
       const addonsTotal = Object.entries(ci.addons)
         .filter(([, v]) => v)
         .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
       return sum + (base + addonsTotal) * ci.qty
     }, 0)
-    output += `TOTAL: P${total}\n`
+    const SIGNATURE_IDS = new Set<string>(
+      (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
+        .flatMap((sub) => sub.items.map((i) => i.id))
+    )
+    const discountAmt = discount10
+      ? Math.round(
+          cart.reduce((sum, ci) => {
+            const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+            const addonsTotal = Object.entries(ci.addons)
+              .filter(([, v]) => v)
+              .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+            const lineTotal = (base + addonsTotal) * ci.qty
+            return sum + (SIGNATURE_IDS.has(ci.item.id) ? lineTotal * 0.10 : 0)
+          }, 0)
+        )
+      : 0
+    const grandTotal = Math.max(0, subtotal - discountAmt)
+    output += `SUBTOTAL: P${subtotal}\n`
+    if (discount10) output += `DISCOUNT 10%: -P${discountAmt}\n`
+    output += `TOTAL: P${grandTotal}\n`
     output += '\nThank you!\n\n\n'
 
     try {
@@ -141,6 +164,8 @@ export default function POS() {
           onToggleAddon={toggleAddon}
           onConnectPrinter={connectPrinter}
           onPrint={printReceipt}
+          discount10={discount10}
+          onToggleDiscount={toggleDiscount}
         />
       </div>
     </div>

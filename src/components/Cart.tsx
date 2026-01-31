@@ -1,5 +1,6 @@
 import type { DrinkSize, MenuItem } from '../types/menu'
 import { ADDONS } from '../data/addons'
+import { MENU_SECTIONS } from '../data/menu'
 
 export type CartItem = {
   item: MenuItem
@@ -16,15 +17,27 @@ export type CartProps = {
   onToggleAddon: (index: number, addonId: string) => void
   onConnectPrinter: () => Promise<void>
   onPrint: () => Promise<void>
+  discount10: boolean
+  onToggleDiscount: () => void
 }
 
-export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAddon, onConnectPrinter, onPrint }: CartProps) {
+export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAddon, onConnectPrinter, onPrint, discount10, onToggleDiscount }: CartProps) {
+  const SIGNATURE_IDS = new Set<string>(
+    (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
+      .flatMap((sub) => sub.items.map((i) => i.id))
+  )
   const calcItemPrice = (ci: CartItem) => {
     const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
     const addons = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
     return (base + addons) * ci.qty
   }
-  const total = items.reduce((sum, ci) => sum + calcItemPrice(ci), 0)
+  const subtotal = items.reduce((sum, ci) => sum + calcItemPrice(ci), 0)
+  const discountAmt = discount10
+    ? Math.round(
+        items.reduce((sum, ci) => sum + (SIGNATURE_IDS.has(ci.item.id) ? calcItemPrice(ci) * 0.10 : 0), 0)
+      )
+    : 0
+  const grandTotal = Math.max(0, subtotal - discountAmt)
   return (
     <div className="cart">
       <h3>Cart</h3>
@@ -58,7 +71,14 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
         ))}
       </div>
       <div className="cart__total">
-        <strong>Total:</strong> P{total}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label>
+            <input type="checkbox" checked={discount10} onChange={onToggleDiscount} /> 10% Discount
+          </label>
+        </div>
+        <div><strong>Subtotal:</strong> P{subtotal}</div>
+        {discount10 && <div><strong>Discount 10%:</strong> -P{discountAmt}</div>}
+        <div><strong>Total:</strong> P{grandTotal}</div>
       </div>
       <div className="cart__actions">
         <button onClick={onClear} className="secondary">Clear Cart</button>
