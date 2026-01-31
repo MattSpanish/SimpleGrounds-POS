@@ -115,6 +115,8 @@ body { background: var(--bg); color: var(--text); display: block; }
 .btn-print:hover { background: #d97706; }
 .btn-complete { background: #2563eb; color: #ffffff; }
 .btn-complete:hover { background: #1d4ed8; }
+.btn-danger { background: #dc2626; color: #ffffff; }
+.btn-danger:hover { background: #b91c1c; }
 
 /* Dashboard */
 .dashboard .cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 12px; }
