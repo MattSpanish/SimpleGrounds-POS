@@ -1,4 +1,5 @@
 import type { DrinkSize, MenuItem } from '../types/menu'
+import type { PaymentType } from '../types/pos'
 import { ADDONS } from '../data/addons'
 import { MENU_SECTIONS } from '../data/menu'
 
@@ -17,11 +18,16 @@ export type CartProps = {
   onToggleAddon: (index: number, addonId: string) => void
   onConnectPrinter: () => Promise<void>
   onPrint: () => Promise<void>
+  onCompleteSale: () => Promise<void>
+  paymentType: PaymentType
+  staff: string
+  onChangePaymentType: (p: PaymentType) => void
+  onChangeStaff: (s: string) => void
   discount10: boolean
   onToggleDiscount: () => void
 }
 
-export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAddon, onConnectPrinter, onPrint, discount10, onToggleDiscount }: CartProps) {
+export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAddon, onConnectPrinter, onPrint, onCompleteSale, paymentType, staff, onChangePaymentType, onChangeStaff, discount10, onToggleDiscount }: CartProps) {
   const SIGNATURE_IDS = new Set<string>(
     (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
       .flatMap((sub) => sub.items.map((i) => i.id))
@@ -81,9 +87,24 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
         <div><strong>Total:</strong> P{grandTotal}</div>
       </div>
       <div className="cart__actions">
+        <div className="cart__meta">
+          <label>
+            Payment:
+            <select value={paymentType} onChange={(e) => onChangePaymentType(e.target.value as PaymentType)}>
+              <option value="cash">Cash</option>
+              <option value="gcash">GCash</option>
+              <option value="card">Card</option>
+            </select>
+          </label>
+          <label>
+            Staff:
+            <input type="text" placeholder="Name" value={staff} onChange={(e) => onChangeStaff(e.target.value)} />
+          </label>
+        </div>
         <button onClick={onClear} className="secondary">Clear Cart</button>
         <button onClick={onConnectPrinter} className="btn btn-connect">Connect Printer</button>
         <button onClick={onPrint} className="btn btn-print">Print Receipt</button>
+        <button onClick={onCompleteSale} className="btn btn-complete">Complete Sale</button>
       </div>
     </div>
   )

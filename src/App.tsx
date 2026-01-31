@@ -5,11 +5,16 @@ import Cart from './components/Cart'
 import type { CartItem } from './components/Cart'
 import type { DrinkSize, MenuItem } from './types/menu'
 import { MENU_SECTIONS } from './data/menu'
+import Dashboard from './components/Dashboard'
+import { addSale } from './data/stats'
 
 export default function POS() {
+  const [activeTab, setActiveTab] = useState<'pos' | 'sales'>('pos')
   const [printer, setPrinter] = useState<BluetoothRemoteGATTCharacteristic | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
   const [discount10, setDiscount10] = useState<boolean>(false)
+  const [paymentType, setPaymentType] = useState<'cash' | 'gcash' | 'card'>('cash')
+  const [staff, setStaff] = useState<string>('')
 
   // Persist cart for friendlier experience
   useEffect(() => {
@@ -26,6 +31,19 @@ export default function POS() {
       localStorage.setItem('sg-pos-cart', JSON.stringify(cart))
     } catch {}
   }, [cart])
+
+  // Persist active tab
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('sg-pos-tab')
+      if (raw === 'sales' || raw === 'pos') setActiveTab(raw)
+    } catch {}
+  }, [])
+  useEffect(() => {
+    try {
+      localStorage.setItem('sg-pos-tab', activeTab)
+    } catch {}
+  }, [activeTab])
 
   const connectPrinter = async () => {
     try {
@@ -90,6 +108,52 @@ export default function POS() {
 
   const toggleDiscount = () => setDiscount10((d) => !d)
 
+  const calcCurrentTotal = () => {
+    const subtotal = cart.reduce((sum, ci) => {
+      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+      const addonsTotal = Object.entries(ci.addons)
+        .filter(([, v]) => v)
+        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      return sum + (base + addonsTotal) * ci.qty
+    }, 0)
+    const SIGNATURE_IDS = new Set<string>(
+      (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
+        .flatMap((sub) => sub.items.map((i) => i.id))
+    )
+    const discountAmt = discount10
+      ? Math.round(
+          cart.reduce((sum, ci) => {
+            const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+            const addonsTotal = Object.entries(ci.addons)
+              .filter(([, v]) => v)
+              .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+            const lineTotal = (base + addonsTotal) * ci.qty
+            return sum + (SIGNATURE_IDS.has(ci.item.id) ? lineTotal * 0.10 : 0)
+          }, 0)
+        )
+      : 0
+    const grandTotal = Math.max(0, subtotal - discountAmt)
+    return grandTotal
+  }
+  const calcItemsCount = () => cart.reduce((s, ci) => s + ci.qty, 0)
+
+  const completeSale = async () => {
+    const total = calcCurrentTotal()
+    if (total <= 0) return alert('Cart is empty.')
+    try {
+      await addSale(total, calcItemsCount(), {
+        items: cart.map((ci) => ({ id: ci.item.id, name: ci.item.name, size: ci.size, qty: ci.qty })),
+        paymentType,
+        staff: staff || undefined,
+      })
+      setCart([])
+      alert('Sale recorded!')
+    } catch (e) {
+      console.error(e)
+      alert('Failed to record sale.')
+    }
+  }
+
   const printReceipt = async () => {
     if (!printer) return alert('Connect to printer first.')
 
@@ -97,6 +161,8 @@ export default function POS() {
     let output = ''
 
     output += '   SIMPLI GROUNDS RECEIPT\n'
+    output += '#9 San Francisco St. Phase 6\n'
+    output += 'Pacita 1, San Pedro Laguna\n'
     output += '-----------------------------\n'
 
     cart.forEach((ci) => {
@@ -132,14 +198,25 @@ export default function POS() {
           }, 0)
         )
       : 0
-    const grandTotal = Math.max(0, subtotal - discountAmt)
+    const total = Math.max(0, subtotal - discountAmt)
     output += `SUBTOTAL: P${subtotal}\n`
     if (discount10) output += `DISCOUNT 10%: -P${discountAmt}\n`
-    output += `TOTAL: P${grandTotal}\n`
+    output += `TOTAL: P${total}\n`
     output += '\nThank you!\n\n\n'
 
     try {
       await printer.writeValue(encoder.encode(output))
+      // Record sale on successful print
+      try {
+        await addSale(total, calcItemsCount(), {
+          items: cart.map((ci) => ({ id: ci.item.id, name: ci.item.name, size: ci.size, qty: ci.qty })),
+          paymentType,
+          staff: staff || undefined,
+        })
+        setCart([])
+      } catch (e) {
+        console.warn('Failed to record sale:', e)
+      }
       alert('Printed successfully!')
     } catch (err) {
       console.error(err)
@@ -154,20 +231,34 @@ export default function POS() {
         <div className="muted">Accepting customized drink • Add-ons available</div>
       </div>
 
-      <div className="layout">
-        <Menu onAdd={addItem} />
-        <Cart
-          items={cart}
-          onRemove={removeItem}
-          onClear={clearCart}
-          onQtyChange={changeQty}
-          onToggleAddon={toggleAddon}
-          onConnectPrinter={connectPrinter}
-          onPrint={printReceipt}
-          discount10={discount10}
-          onToggleDiscount={toggleDiscount}
-        />
+  <div className="app__tabs">
+        <button className={activeTab === 'pos' ? 'active' : ''} onClick={() => setActiveTab('pos')}>POS</button>
+        <button className={activeTab === 'sales' ? 'active' : ''} onClick={() => setActiveTab('sales')}>Sales</button>
       </div>
+
+      {activeTab === 'sales' ? (
+        <Dashboard />
+      ) : (
+        <div className="layout">
+          <Menu onAdd={addItem} />
+          <Cart
+            items={cart}
+            onRemove={removeItem}
+            onClear={clearCart}
+            onQtyChange={changeQty}
+            onToggleAddon={toggleAddon}
+            onConnectPrinter={connectPrinter}
+            onPrint={printReceipt}
+            onCompleteSale={completeSale}
+            discount10={discount10}
+            onToggleDiscount={toggleDiscount}
+            paymentType={paymentType}
+            staff={staff}
+            onChangePaymentType={setPaymentType}
+            onChangeStaff={setStaff}
+          />
+        </div>
+      )}
     </div>
   )
 }
