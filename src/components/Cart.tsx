@@ -62,8 +62,8 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
       </div>
       <div className="cart__actions">
         <button onClick={onClear} className="secondary">Clear Cart</button>
-        <button onClick={onConnectPrinter}>Connect Printer</button>
-        <button onClick={onPrint}>Print Receipt</button>
+        <button onClick={onConnectPrinter} className="btn btn-connect">Connect Printer</button>
+        <button onClick={onPrint} className="btn btn-print">Print Receipt</button>
       </div>
     </div>
   )
