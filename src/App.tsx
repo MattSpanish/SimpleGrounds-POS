@@ -180,12 +180,15 @@ export default function POS() {
     output += right('Dine in', '') + '\n'
     output += '--------------------------------\n'
     output += 'Drinks\n'
-
+    output += '\n'
+    output += '\n'
     // Items
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+      output += '\n'
       const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
       const unit = base + addonsTotal
+      output += '\n'
       const line = unit * ci.qty
       output += right(`${ci.item.name} (${ci.size})`, currency(line)) + '\n'
       output += `${ci.qty} x ${currency(unit)}\n`
