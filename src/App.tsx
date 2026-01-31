@@ -157,10 +157,11 @@ export default function POS() {
   const printReceipt = async () => {
     if (!printer) return alert('Connect to printer first.')
 
-    const encoder = new TextEncoder()
+      const encoder = new TextEncoder()
     let output = ''
     const width = 32
-    const currency = (n: number) => `₱${n.toFixed(2)}`
+      // Some mobile printers (e.g., SDXP-210) prefer ASCII; avoid '₱'
+      const currency = (n: number) => `PHP ${n.toFixed(2)}`
     const right = (leftText: string, rightText: string) => {
       const left = leftText.length > width ? leftText.slice(0, width) : leftText
       const pad = Math.max(1, width - left.length - rightText.length)
@@ -236,7 +237,13 @@ export default function POS() {
     output += '\nThank you!\n\n\n'
 
     // Write in BLE-friendly chunks with graceful fallback
-    const bytes = encoder.encode(output)
+    // Write in BLE-friendly chunks with graceful fallback
+    // Add ESC/POS init (ESC @) and left-align (ESC a 0), and convert LF to CRLF
+    const prelude = new Uint8Array([0x1B, 0x40, 0x1B, 0x61, 0x00])
+    const textBytes = encoder.encode(output.replace(/\n/g, '\r\n'))
+    const bytes = new Uint8Array(prelude.length + textBytes.length)
+    bytes.set(prelude)
+    bytes.set(textBytes, prelude.length)
     const chunkSize = 180 // stay under typical ATT MTU
     const ch: any = printer
     const useNoResp = typeof ch.writeValueWithoutResponse === 'function'
