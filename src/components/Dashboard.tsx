@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import { addExpense, dateUtils, getBestSellingItems, getPaymentBreakdown, getSalesPerStaff, getSalesPerShift, getHourlySales } from '../data/stats'
+import { addExpense, dateUtils, getBestSellingItems, getPaymentBreakdown, getSalesPerStaff, getSalesPerShift, getHourlySales, resetSales, resetExpenses, resetAllData } from '../data/stats'
 
 export default function Dashboard() {
   const [expenseAmt, setExpenseAmt] = useState('')
@@ -256,6 +256,30 @@ export default function Dashboard() {
             </select>
           </label>
           <div><strong>P{hourly[hourSelected] ?? 0}</strong></div>
+        </div>
+      </div>
+
+      <div className="list">
+        <div className="list__header"><h4>Maintenance</h4></div>
+        <div className="hourly-row" style={{ justifyContent: 'space-between' }}>
+          <button className="btn btn-danger" onClick={async () => {
+            if (confirm('Reset ALL sales data? This cannot be undone.')) {
+              await resetSales()
+              alert('Sales reset complete.')
+            }
+          }}>Reset Sales</button>
+          <button className="btn btn-danger" onClick={async () => {
+            if (confirm('Reset ALL expenses data? This cannot be undone.')) {
+              await resetExpenses()
+              alert('Expenses reset complete.')
+            }
+          }}>Reset Expenses</button>
+          <button className="btn btn-danger" onClick={async () => {
+            if (confirm('Reset ALL sales and expenses? This cannot be undone.')) {
+              await resetAllData()
+              alert('All data reset complete.')
+            }
+          }}>Reset All</button>
         </div>
       </div>
     </div>
