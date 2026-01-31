@@ -235,8 +235,23 @@ export default function POS() {
 
     output += '\nThank you!\n\n\n'
 
+    // Write in BLE-friendly chunks with graceful fallback
+    const bytes = encoder.encode(output)
+    const chunkSize = 180 // stay under typical ATT MTU
+    const ch: any = printer
+    const useNoResp = typeof ch.writeValueWithoutResponse === 'function'
+    const writeChunk = async (chunk: Uint8Array) => {
+      const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength)
+      if (useNoResp) return ch.writeValueWithoutResponse(view as unknown as BufferSource)
+      return printer.writeValue(view as unknown as BufferSource)
+    }
+
     try {
-      await printer.writeValue(encoder.encode(output))
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const part = bytes.slice(i, Math.min(i + chunkSize, bytes.length))
+        await writeChunk(part)
+        await new Promise((r) => setTimeout(r, 25))
+      }
       // Record sale on successful print
       try {
         await addSale(total, calcItemsCount(), {
