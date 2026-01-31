@@ -167,13 +167,17 @@ export default function POS() {
       return left + ' '.repeat(pad) + rightText
     }
 
-    // Header (match sample style)
+    // Header (store name + address)
     output += 'SIMPLIGROUNDS\n'
+    output += '#9 San Francisco St. Phase 6\n'
+    output += 'Pacita 1, San Pedro Laguna\n'
     output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
     output += right('POS: SIMPLIGROUNDS', '') + '\n'
+    output += '\n'
     output += '--------------------------------\n'
     output += right('Dine in', '') + '\n'
     output += '--------------------------------\n'
+    output += 'Drinks\n'
 
     // Items
     cart.forEach((ci) => {
@@ -213,6 +217,8 @@ export default function POS() {
       : 0
     const total = Math.max(0, subtotal - discountAmt)
     // Totals and payment line
+    output += right('Subtotal', currency(subtotal)) + '\n'
+    if (discountAmt > 0) output += right('Discount 10%', '-' + currency(discountAmt)) + '\n'
     output += right('Total', currency(total)) + '\n\n'
     output += right(paymentType.charAt(0).toUpperCase() + paymentType.slice(1), currency(total)) + '\n'
 
