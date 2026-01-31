@@ -170,7 +170,7 @@ export default function POS() {
     }
 
     // Header (store name + address)
-    output +=       'SIMPLIGROUNDS\n'
+    output += 'SIMPLIGROUNDS\n'
     output += '#9 San Francisco St. Phase 6\n'
     output += 'Pacita 1, San Pedro Laguna\n'
     output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
@@ -181,17 +181,16 @@ export default function POS() {
     output += '--------------------------------\n'
     output += 'Drinks\n'
     output += '\n'
-    output += '\n'
     // Items
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-      output += '\n'
       const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
       const unit = base + addonsTotal
-      output += '\n'
       const line = unit * ci.qty
       output += right(`${ci.item.name} (${ci.size})`, currency(line)) + '\n'
       output += `${ci.qty} x ${currency(unit)}\n`
+      // one blank line between drinks
+      output += '\n'
     })
 
     output += '--------------------------------\n'
