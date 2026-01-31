@@ -5,6 +5,7 @@ import Cart from './components/Cart'
 import type { CartItem } from './components/Cart'
 import type { DrinkSize, MenuItem } from './types/menu'
 import { MENU_SECTIONS } from './data/menu'
+import { ADDONS } from './data/addons'
 import Dashboard from './components/Dashboard'
 import { addSale } from './data/stats'
 
@@ -160,8 +161,8 @@ export default function POS() {
       const encoder = new TextEncoder()
     let output = ''
     const width = 32
-      // Some mobile printers (e.g., SDXP-210) prefer ASCII; avoid '₱'
-      const currency = (n: number) => `PHP ${n.toFixed(2)}`
+      // Match Cart display: integer pesos with 'P' prefix
+      const currency = (n: number) => `P${n.toFixed(0)}`
     const right = (leftText: string, rightText: string) => {
       const left = leftText.length > width ? leftText.slice(0, width) : leftText
       const pad = Math.max(1, width - left.length - rightText.length)
@@ -169,7 +170,7 @@ export default function POS() {
     }
 
     // Header (store name + address)
-    output += 'SIMPLIGROUNDS\n'
+    output +=       'SIMPLIGROUNDS\n'
     output += '#9 San Francisco St. Phase 6\n'
     output += 'Pacita 1, San Pedro Laguna\n'
     output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
@@ -183,21 +184,17 @@ export default function POS() {
     // Items
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-      const addonsTotal = Object.entries(ci.addons)
-        .filter(([, v]) => v)
-        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
       const unit = base + addonsTotal
       const line = unit * ci.qty
-      output += right(ci.item.name, currency(line)) + '\n'
+      output += right(`${ci.item.name} (${ci.size})`, currency(line)) + '\n'
       output += `${ci.qty} x ${currency(unit)}\n`
     })
 
     output += '--------------------------------\n'
     const subtotal = cart.reduce((sum, ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-      const addonsTotal = Object.entries(ci.addons)
-        .filter(([, v]) => v)
-        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
       return sum + (base + addonsTotal) * ci.qty
     }, 0)
     const SIGNATURE_IDS = new Set<string>(
@@ -208,9 +205,7 @@ export default function POS() {
       ? Math.round(
           cart.reduce((sum, ci) => {
             const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-            const addonsTotal = Object.entries(ci.addons)
-              .filter(([, v]) => v)
-              .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+            const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
             const lineTotal = (base + addonsTotal) * ci.qty
             return sum + (SIGNATURE_IDS.has(ci.item.id) ? lineTotal * 0.10 : 0)
           }, 0)
