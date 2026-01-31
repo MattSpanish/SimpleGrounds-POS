@@ -52,10 +52,10 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem, siz
       </div>
       <div className="menu-card__prices">
         {hasIced && (
-          <button className="price" onClick={() => onAdd(item, 'iced')}>Iced P{item.prices.iced}</button>
+          <button className="price" onClick={() => onAdd(item, 'iced')}>Iced • P{item.prices.iced}</button>
         )}
         {hasHot && (
-          <button className="price" onClick={() => onAdd(item, 'hot')}>Hot P{item.prices.hot}</button>
+          <button className="price" onClick={() => onAdd(item, 'hot')}>Hot • P{item.prices.hot}</button>
         )}
       </div>
     </div>

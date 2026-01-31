@@ -1,21 +1,29 @@
-import { useState } from 'react'
-
-type MenuItem = { id: number; name: string; price: number }
-
-// Example menu list (expand with all your items)
-const MENU: MenuItem[] = [
-  { id: 1, name: 'Americano Hot/Iced', price: 80 },
-  { id: 2, name: 'Spanish Latte', price: 125 },
-  { id: 3, name: 'Matcha Latte', price: 99 },
-  { id: 4, name: 'Ube Latte', price: 115 },
-]
+import { useEffect, useState } from 'react'
+import './App.css'
+import Menu from './components/Menu'
+import Cart from './components/Cart'
+import type { CartItem } from './components/Cart'
+import type { DrinkSize, MenuItem } from './types/menu'
 
 export default function POS() {
-  const [cart, setCart] = useState<MenuItem[]>([])
   const [printer, setPrinter] = useState<BluetoothRemoteGATTCharacteristic | null>(null)
+  const [cart, setCart] = useState<CartItem[]>([])
 
-  const addItem = (item: MenuItem) => setCart((prev) => [...prev, item])
-  const total = cart.reduce((sum, i) => sum + i.price, 0)
+  // Persist cart for friendlier experience
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('sg-pos-cart')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) setCart(parsed)
+      }
+    } catch {}
+  }, [])
+  useEffect(() => {
+    try {
+      localStorage.setItem('sg-pos-cart', JSON.stringify(cart))
+    } catch {}
+  }, [cart])
 
   const connectPrinter = async () => {
     try {
@@ -36,6 +44,15 @@ export default function POS() {
     }
   }
 
+  const addItem = (item: MenuItem, size: DrinkSize) =>
+    setCart((prev) => [...prev, { item, size, qty: 1, addons: {} }])
+  const removeItem = (index: number) => setCart((prev) => prev.filter((_, i) => i !== index))
+  const clearCart = () => setCart([])
+  const changeQty = (index: number, delta: 1 | -1) =>
+    setCart((prev) => prev.map((ci, i) => (i === index ? { ...ci, qty: Math.max(1, ci.qty + delta) } : ci)))
+  const toggleAddon = (index: number, addonId: string) =>
+    setCart((prev) => prev.map((ci, i) => (i === index ? { ...ci, addons: { ...ci.addons, [addonId]: !ci.addons[addonId] } } : ci)))
+
   const printReceipt = async () => {
     if (!printer) return alert('Connect to printer first.')
 
@@ -45,11 +62,23 @@ export default function POS() {
     output += '   SIMPLI GROUNDS RECEIPT\n'
     output += '-----------------------------\n'
 
-    cart.forEach((item) => {
-      output += `${item.name}  P${item.price}\n`
+    cart.forEach((ci) => {
+      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+      const addonsTotal = Object.entries(ci.addons)
+        .filter(([, v]) => v)
+        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      const line = (base + addonsTotal) * ci.qty
+      output += `${ci.item.name} (${ci.size}) x${ci.qty}  P${line}\n`
     })
 
     output += '-----------------------------\n'
+    const total = cart.reduce((sum, ci) => {
+      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+      const addonsTotal = Object.entries(ci.addons)
+        .filter(([, v]) => v)
+        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      return sum + (base + addonsTotal) * ci.qty
+    }, 0)
     output += `TOTAL: P${total}\n`
     output += '\nThank you!\n\n\n'
 
@@ -63,36 +92,23 @@ export default function POS() {
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Coffee POS</h2>
-
-      <div style={{ display: 'flex', gap: 10 }}>
-        {MENU.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => addItem(item)}
-            style={{ padding: 10, border: '1px solid #000', flex: 1 }}
-          >
-            {item.name} <br /> P{item.price}
-          </button>
-        ))}
+    <div>
+      <div className="app__header">
+        <div className="brand"><span className="accent">Simpli</span>Grounds • Coffee Street Garage</div>
+        <div className="muted">Accepting customized drink • Add-ons available</div>
       </div>
 
-      <div style={{ marginTop: 15 }}>
-        <h3>Cart</h3>
-        {cart.map((c, i) => (
-          <div key={i}>
-            {c.name} - P{c.price}
-          </div>
-        ))}
-        <strong>Total: P{total}</strong>
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        <button onClick={connectPrinter} style={{ marginRight: 10 }}>
-          Connect Printer
-        </button>
-        <button onClick={printReceipt}>Print Receipt</button>
+      <div className="layout">
+        <Menu onAdd={addItem} />
+        <Cart
+          items={cart}
+          onRemove={removeItem}
+          onClear={clearCart}
+          onQtyChange={changeQty}
+          onToggleAddon={toggleAddon}
+          onConnectPrinter={connectPrinter}
+          onPrint={printReceipt}
+        />
       </div>
     </div>
   )
