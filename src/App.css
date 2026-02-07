@@ -135,14 +135,43 @@ body { background: var(--bg); color: var(--text); display: block; }
 .range-toggle { margin: 8px 0 16px; }
 .hourly-row { display: flex; gap: 8px; align-items: center; }
 
+/* Hourly report: ensure readability on phones */
+.hourly-report { overflow-x: auto; }
+.hourly-report__chart, .hourly-report__axis { min-width: 960px; }
+
+/* Progressive card columns for larger screens */
+@media (max-width: 1200px) {
+  .dashboard .cards { grid-template-columns: repeat(4, 1fr); }
+}
+@media (max-width: 1024px) {
+  .dashboard .cards { grid-template-columns: repeat(3, 1fr); }
+}
+
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .dashboard .cards { grid-template-columns: repeat(2, 1fr); }
   .lists { grid-template-columns: 1fr; }
+  /* Calendar cells slightly shorter on tablets */
+  .calendar__cell { min-height: 56px; }
 }
 
 /* Cart: mobile-responsive layout and spacing */
 @media (max-width: 640px) {
+  /* Dashboard cards stack for narrow phones */
+  .dashboard .cards { grid-template-columns: 1fr; }
+  /* Make hourly report slightly narrower to reduce scrolling distance */
+  .hourly-report__chart, .hourly-report__axis { min-width: 720px; }
+  /* Expense form: stack inputs and make full-width */
+  .expense-form .row { flex-direction: column; gap: 10px; }
+  .expense-form input, .expense-form button { width: 100%; }
+  /* List headers: allow wrapping of actions */
+  .list__header { flex-wrap: wrap; gap: 8px; }
+  /* List rows: use grid for cleaner wrapping */
+  .list__row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  /* Maintenance row: allow wrap */
+  .hourly-row { flex-wrap: wrap; }
+  /* Calendar cells a bit tighter on phones */
+  .calendar__cell { min-height: 48px; }
   /* Slightly increase container padding for comfortable touch targets */
   .cart { padding: 14px; }
   /* Make each cart row stack details and controls cleanly */
