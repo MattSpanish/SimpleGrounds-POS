@@ -229,7 +229,6 @@ export default function POS() {
     const hh = String(((hours + 11) % 12) + 1).padStart(2, '0')
     const min = String(dt.getMinutes()).padStart(2, '0')
     output += `\n${dd}/${mm}/${yyyy} ${hh}:${min} ${ampm}\n`
-
     output += '\nThank you!\n\n\n'
 
     // Write in BLE-friendly chunks with graceful fallback

@@ -101,10 +101,22 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
             <input type="text" placeholder="Name" value={staff} onChange={(e) => onChangeStaff(e.target.value)} />
           </label>
         </div>
-        <button onClick={onClear} className="secondary">Clear Cart</button>
-        <button onClick={onConnectPrinter} className="btn btn-connect">Connect Printer</button>
-        <button onClick={onPrint} className="btn btn-print">Print Receipt</button>
-        <button onClick={onCompleteSale} className="btn btn-complete">Complete Sale</button>
+        <div className="cart__buttons">
+          <button
+            onClick={() => {
+              if (items.length === 0) return
+              const ok = window.confirm('Clear the cart?')
+              if (ok) onClear()
+            }}
+            className="secondary"
+            disabled={items.length === 0}
+          >
+            Clear Cart
+          </button>
+          <button onClick={onConnectPrinter} className="btn btn-connect">Connect Printer</button>
+          <button onClick={onPrint} className="btn btn-print" disabled={total <= 0}>Print Receipt</button>
+          <button onClick={onCompleteSale} className="btn btn-complete" disabled={total <= 0}>Complete Sale</button>
+        </div>
       </div>
     </div>
   )
