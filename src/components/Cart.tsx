@@ -114,8 +114,8 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
             Clear Cart
           </button>
           <button onClick={onConnectPrinter} className="btn btn-connect">Connect Printer</button>
-          <button onClick={onPrint} className="btn btn-print" disabled={total <= 0}>Print Receipt</button>
-          <button onClick={onCompleteSale} className="btn btn-complete" disabled={total <= 0}>Complete Sale</button>
+          <button onClick={onPrint} className="btn btn-print" disabled={grandTotal <= 0}>Print Receipt</button>
+          <button onClick={onCompleteSale} className="btn btn-complete" disabled={grandTotal <= 0}>Complete Sale</button>
         </div>
       </div>
     </div>
