@@ -137,23 +137,39 @@ export default function POS() {
     const encoder = new TextEncoder()
     let output = ''
 
-    output += '   SIMPLI GROUNDS RECEIPT\n'
-    output += '#9 San Francisco St. Phase 6\n'
-    output += 'Pacita 1, San Pedro Laguna\n'
-    output += '-----------------------------\n'
+    const lineWidth = 32
+    const hr = '-'.repeat(lineWidth)
+    const center = (text: string) => {
+      const t = text.trim()
+      const pad = Math.max(0, Math.floor((lineWidth - t.length) / 2))
+      return ' '.repeat(pad) + t + '\n'
+    }
+    const formatMoney = (n: number) => `P${n}`
+    const formatLine = (left: string, right: string) => {
+      const l = left.length > 22 ? left.slice(0, 22) : left
+      const space = Math.max(1, lineWidth - l.length - right.length)
+      return l + ' '.repeat(space) + right + '\n'
+    }
+
+    output += center('SIMPLI GROUNDS RECEIPT')
+    output += center('#9 San Francisco St. Phase 6')
+    output += center('Pacita 1, San Pedro Laguna')
+    output += hr + '\n'
 
     cart.forEach((ci) => {
       const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
       const addonsTotal = Object.entries(ci.addons)
         .filter(([, v]) => v)
         .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
-      const line = (base + addonsTotal) * ci.qty
-      output += `${ci.item.name} (${ci.size}) x${ci.qty}  P${line}\n`
+      const lineTotal = (base + addonsTotal) * ci.qty
+      const left = `${ci.item.name} (${ci.size}) x${ci.qty}`
+      const right = formatMoney(lineTotal)
+      output += formatLine(left, right)
     })
 
-    output += '-----------------------------\n'
+    output += hr + '\n'
     const total = calcCurrentTotal()
-    output += `TOTAL: P${total}\n`
+    output += formatLine('TOTAL', formatMoney(total))
     output += '\nThank you!\n\n\n'
 
     try {

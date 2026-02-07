@@ -10,7 +10,7 @@ export const MENU_SECTIONS: MenuSection[] = [
         items: [
           { id: 'americano', name: 'Americano', prices: { iced: 70, hot: 80 } },
           { id: 'flat-white', name: 'Flat White', prices: { iced: 105, hot: 115 } },
-          { id: 'spanish-latte', name: 'Spanish Latte', prices: { iced: 155, hot: 125 } },
+          { id: 'spanish-latte', name: 'Spanish Latte', prices: { iced: 115, hot: 125 } },
           { id: 'cappuccino', name: 'Cappuccino', prices: { iced: 105, hot: 115 } },
           { id: 'dark-mocha', name: 'Dark Mocha', prices: { iced: 140, hot: 150 } },
           { id: 'white-choco-mocha', name: 'White Chocolate Mocha', prices: { iced: 135, hot: 145 } },
