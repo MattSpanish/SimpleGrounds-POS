@@ -31,6 +31,14 @@ export const MENU_SECTIONS: MenuSection[] = [
           { id: 'ube-milk', name: 'Ube Milk', prices: { iced: 105, hot: 115 } },
         ],
       },
+      {
+        name: 'Fruit Tea',
+        items: [
+          { id: 'strawberry-fruit-tea', name: 'Strawberry Fruit Tea', prices: { iced: 60 } },
+          { id: 'blueberry-fruit-tea', name: 'Blueberry Fruit Tea', prices: { iced: 60 } },
+          { id: 'green-apple-tea', name: 'Green Apple Tea', prices: { iced: 60 } },
+        ],
+      },
     ],
   },
   {
@@ -39,7 +47,7 @@ export const MENU_SECTIONS: MenuSection[] = [
       {
         name: 'Espresso Base',
         items: [
-          { id: 'espresso', name: 'Espresso (Double Shot)', prices: { iced: 0, hot: 65 }, badge: 'double' },
+          { id: 'espresso', name: 'Espresso (Double Shot)', prices: {  hot: 65 }, badge: 'double' },
           { id: 'vietnamese-latte', name: 'Vietnamese Latte', prices: { iced: 120, hot: 130 } },
           { id: 'dalgona-latte', name: 'Dalgona Latte', prices: { iced: 140, hot: 150 } },
           { id: 'creamy-cappuccino', name: 'Creamy Cappuccino', prices: { iced: 130, hot: 140 } },
@@ -73,4 +81,16 @@ export const MENU_SECTIONS: MenuSection[] = [
       },
     ],
   },
+  {
+      name: 'Pastries',
+    subcategories: [
+      {
+        name: 'Pastries',
+        items: [
+          { id: 'MANGO-GRAHAM', name: 'Mango Graham', prices: { regular: 150 } },
+          { id: 'BISCOFF CREAM', name: 'Biscoff Cream', prices: { regular: 150 } },
+        ],
+      },
+    ]
+  }
 ]

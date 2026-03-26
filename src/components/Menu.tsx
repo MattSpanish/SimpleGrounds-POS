@@ -43,6 +43,7 @@ export default function Menu({ onAdd }: MenuProps) {
 function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem, size: DrinkSize) => void }) {
   const hasHot = item.prices.hot != null
   const hasIced = item.prices.iced != null
+  const hasRegular = item.prices.regular != null
 
   return (
     <div className="menu-card">
@@ -56,6 +57,9 @@ function MenuCard({ item, onAdd }: { item: MenuItem; onAdd: (item: MenuItem, siz
         )}
         {hasHot && (
           <button className="price" onClick={() => onAdd(item, 'hot')}>Hot • P{item.prices.hot}</button>
+        )}
+        {hasRegular && (
+          <button className="price" onClick={() => onAdd(item, 'regular')}>P{item.prices.regular}</button>
         )}
       </div>
     </div>

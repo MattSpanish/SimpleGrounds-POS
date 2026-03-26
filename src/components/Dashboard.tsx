@@ -54,7 +54,17 @@ export default function Dashboard() {
 
   const cupsActive = useLiveQuery(async () => {
     const rows = await db.sales.where('timestamp').between(activeRange.from, activeRange.to, true, true).toArray()
-    return rows.reduce((s, r) => s + (r.itemsCount ?? (r.items?.reduce((q, it) => q + it.qty, 0) ?? 0)), 0)
+    return rows.reduce((sum, row) => {
+      if (Array.isArray(row.items)) {
+        const nonPastryCount = row.items
+          .filter((it) => it.size !== 'regular')
+          .reduce((qty, it) => qty + it.qty, 0)
+        return sum + nonPastryCount
+      }
+
+      // Legacy rows may only have itemsCount; keep that as a fallback.
+      return sum + (row.itemsCount ?? 0)
+    }, 0)
   }, [activeRange.from.getTime()]) ?? 0
 
   const recentSales = useLiveQuery(async () => {

@@ -4,8 +4,6 @@ import Menu from './components/Menu'
 import Cart from './components/Cart'
 import type { CartItem } from './components/Cart'
 import type { DrinkSize, MenuItem } from './types/menu'
-import { MENU_SECTIONS } from './data/menu'
-import { ADDONS } from './data/addons'
 import Dashboard from './components/Dashboard'
 import { addSale } from './data/stats'
 
@@ -13,7 +11,6 @@ export default function POS() {
   const [activeTab, setActiveTab] = useState<'pos' | 'sales'>('pos')
   const [printer, setPrinter] = useState<BluetoothRemoteGATTCharacteristic | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
-  const [discount10, setDiscount10] = useState<boolean>(false)
   const [paymentType, setPaymentType] = useState<'cash' | 'gcash' | 'card'>('cash')
   const [staff, setStaff] = useState<string>('')
 
@@ -107,35 +104,18 @@ export default function POS() {
   const toggleAddon = (index: number, addonId: string) =>
     setCart((prev) => prev.map((ci, i) => (i === index ? { ...ci, addons: { ...ci.addons, [addonId]: !ci.addons[addonId] } } : ci)))
 
-  const toggleDiscount = () => setDiscount10((d) => !d)
-
-  const calcCurrentTotal = () => {
-    const subtotal = cart.reduce((sum, ci) => {
-      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
+  const calcCurrentTotal = () =>
+    cart.reduce((sum, ci) => {
+      const base = ci.size === 'iced'
+        ? ci.item.prices.iced ?? 0
+        : ci.size === 'hot'
+          ? ci.item.prices.hot ?? 0
+          : ci.item.prices.regular ?? 0
       const addonsTotal = Object.entries(ci.addons)
         .filter(([, v]) => v)
         .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
       return sum + (base + addonsTotal) * ci.qty
     }, 0)
-    const SIGNATURE_IDS = new Set<string>(
-      (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
-        .flatMap((sub) => sub.items.map((i) => i.id))
-    )
-    const discountAmt = discount10
-      ? Math.round(
-          cart.reduce((sum, ci) => {
-            const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-            const addonsTotal = Object.entries(ci.addons)
-              .filter(([, v]) => v)
-              .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
-            const lineTotal = (base + addonsTotal) * ci.qty
-            return sum + (SIGNATURE_IDS.has(ci.item.id) ? lineTotal * 0.10 : 0)
-          }, 0)
-        )
-      : 0
-    const grandTotal = Math.max(0, subtotal - discountAmt)
-    return grandTotal
-  }
   const calcItemsCount = () => cart.reduce((s, ci) => s + ci.qty, 0)
 
   const completeSale = async () => {
@@ -158,102 +138,50 @@ export default function POS() {
   const printReceipt = async () => {
     if (!printer) return alert('Connect to printer first.')
 
-      const encoder = new TextEncoder()
+    const encoder = new TextEncoder()
     let output = ''
-    const width = 32
-      // Match Cart display: integer pesos with 'P' prefix
-      const currency = (n: number) => `P${n.toFixed(0)}`
-    const right = (leftText: string, rightText: string) => {
-      const left = leftText.length > width ? leftText.slice(0, width) : leftText
-      const pad = Math.max(1, width - left.length - rightText.length)
-      return left + ' '.repeat(pad) + rightText
+
+    const lineWidth = 32
+    const hr = '-'.repeat(lineWidth)
+    const center = (text: string) => {
+      const t = text.trim()
+      const pad = Math.max(0, Math.floor((lineWidth - t.length) / 2))
+      return ' '.repeat(pad) + t + '\n'
+    }
+    const formatMoney = (n: number) => `P${n}`
+    const formatLine = (left: string, right: string) => {
+      const l = left.length > 22 ? left.slice(0, 22) : left
+      const space = Math.max(1, lineWidth - l.length - right.length)
+      return l + ' '.repeat(space) + right + '\n'
     }
 
-    // Header (store name + address)
-    output += 'SIMPLIGROUNDS\n'
-    output += '#9 San Francisco St. Phase 2\n'
-    output += 'Brgy Pacita 1, San Pedro Laguna\n'
-    output += right('Employee: ' + (staff || 'Owner'), '') + '\n'
-    output += right('POS: SIMPLIGROUNDS', '') + '\n'
-    output += '\n'
-    output += '--------------------------------\n'
-    output += right('Dine in', '') + '\n'
-    output += '--------------------------------\n'
-    output += 'Drinks\n'
-    // Items
+    output += center('SIMPLI GROUNDS RECEIPT')
+    output += center('#9 San Francisco St. Phase 6')
+    output += center('Pacita 1, San Pedro Laguna')
+    output += hr + '\n'
+
     cart.forEach((ci) => {
-      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-      const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
-      const unit = base + addonsTotal
-      const line = unit * ci.qty
-      output += right(`${ci.item.name} (${ci.size})`, currency(line)) + '\n'
-      output += `${ci.qty} x ${currency(unit)}\n`
-      // one blank line between drinks
-      output += '\n'
+      const base = ci.size === 'iced'
+        ? ci.item.prices.iced ?? 0
+        : ci.size === 'hot'
+          ? ci.item.prices.hot ?? 0
+          : ci.item.prices.regular ?? 0
+      const addonsTotal = Object.entries(ci.addons)
+        .filter(([, v]) => v)
+        .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
+      const lineTotal = (base + addonsTotal) * ci.qty
+      const left = `${ci.item.name} (${ci.size}) x${ci.qty}`
+      const right = formatMoney(lineTotal)
+      output += formatLine(left, right)
     })
 
-    output += '--------------------------------\n'
-    const subtotal = cart.reduce((sum, ci) => {
-      const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-      const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
-      return sum + (base + addonsTotal) * ci.qty
-    }, 0)
-    const SIGNATURE_IDS = new Set<string>(
-      (MENU_SECTIONS.find((s) => s.name === 'Signature Craft Drinks')?.subcategories || [])
-        .flatMap((sub) => sub.items.map((i) => i.id))
-    )
-    const discountAmt = discount10
-      ? Math.round(
-          cart.reduce((sum, ci) => {
-            const base = ci.size === 'iced' ? ci.item.prices.iced ?? 0 : ci.item.prices.hot ?? 0
-            const addonsTotal = ADDONS.reduce((s, a) => s + (ci.addons[a.id] ? a.price : 0), 0)
-            const lineTotal = (base + addonsTotal) * ci.qty
-            return sum + (SIGNATURE_IDS.has(ci.item.id) ? lineTotal * 0.10 : 0)
-          }, 0)
-        )
-      : 0
-    const total = Math.max(0, subtotal - discountAmt)
-    // Totals and payment line
-    output += right('Subtotal', currency(subtotal)) + '\n'
-    if (discountAmt > 0) output += right('Discount 10%', '-' + currency(discountAmt)) + '\n'
-    output += right('Total', currency(total)) + '\n\n'
-    output += right(paymentType.charAt(0).toUpperCase() + paymentType.slice(1), currency(total)) + '\n'
-
-    // Date/time footer (dd/mm/yyyy hh:mm am/pm)
-    const dt = new Date()
-    const dd = String(dt.getDate()).padStart(2, '0')
-    const mm = String(dt.getMonth() + 1).padStart(2, '0')
-    const yyyy = dt.getFullYear()
-    const hours = dt.getHours()
-    const ampm = hours >= 12 ? 'pm' : 'am'
-    const hh = String(((hours + 11) % 12) + 1).padStart(2, '0')
-    const min = String(dt.getMinutes()).padStart(2, '0')
-    output += `\n${dd}/${mm}/${yyyy} ${hh}:${min} ${ampm}\n`
+    output += hr + '\n'
+    const total = calcCurrentTotal()
+    output += formatLine('TOTAL', formatMoney(total))
     output += '\nThank you!\n\n\n'
 
-    // Write in BLE-friendly chunks with graceful fallback
-    // Write in BLE-friendly chunks with graceful fallback
-    // Add ESC/POS init (ESC @) and left-align (ESC a 0), and convert LF to CRLF
-    const prelude = new Uint8Array([0x1B, 0x40, 0x1B, 0x61, 0x00])
-    const textBytes = encoder.encode(output.replace(/\n/g, '\r\n'))
-    const bytes = new Uint8Array(prelude.length + textBytes.length)
-    bytes.set(prelude)
-    bytes.set(textBytes, prelude.length)
-    const chunkSize = 180 // stay under typical ATT MTU
-    const ch: any = printer
-    const useNoResp = typeof ch.writeValueWithoutResponse === 'function'
-    const writeChunk = async (chunk: Uint8Array) => {
-      const view = new DataView(chunk.buffer, chunk.byteOffset, chunk.byteLength)
-      if (useNoResp) return ch.writeValueWithoutResponse(view as unknown as BufferSource)
-      return printer.writeValue(view as unknown as BufferSource)
-    }
-
     try {
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const part = bytes.slice(i, Math.min(i + chunkSize, bytes.length))
-        await writeChunk(part)
-        await new Promise((r) => setTimeout(r, 25))
-      }
+      await printer.writeValue(encoder.encode(output))
       // Record sale on successful print
       try {
         await addSale(total, calcItemsCount(), {
@@ -279,7 +207,7 @@ export default function POS() {
         <div className="muted">Accepting customized drink • Add-ons available</div>
       </div>
 
-  <div className="app__tabs">
+      <div className="app__tabs">
         <button className={activeTab === 'pos' ? 'active' : ''} onClick={() => setActiveTab('pos')}>POS</button>
         <button className={activeTab === 'sales' ? 'active' : ''} onClick={() => setActiveTab('sales')}>Sales</button>
       </div>
@@ -298,8 +226,6 @@ export default function POS() {
             onConnectPrinter={connectPrinter}
             onPrint={printReceipt}
             onCompleteSale={completeSale}
-            discount10={discount10}
-            onToggleDiscount={toggleDiscount}
             paymentType={paymentType}
             staff={staff}
             onChangePaymentType={setPaymentType}

@@ -1,4 +1,4 @@
-export type DrinkSize = 'iced' | 'hot'
+export type DrinkSize = 'iced' | 'hot' | 'regular'
 
 export type MenuItem = {
   id: string
