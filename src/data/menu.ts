@@ -13,7 +13,7 @@ export const MENU_SECTIONS: MenuSection[] = [
           { id: 'spanish-latte', name: 'Spanish Latte', prices: { iced: 135, hot: 140 } },
           { id: 'cappuccino', name: 'Cappuccino', prices: { iced: 120, hot: 125 } },
           { id: 'dark-mocha', name: 'Dark Mocha', prices: { iced: 145, hot: 150 } },
-          { id: 'white-choco-mocha', name: 'White Chocolate Mocha', prices: { iced: 140, hot: 150 } },
+          { id: 'white-choco-mocha', name: 'White Chocolate Mocha', prices: { iced: 140, hot: 145 } },
           { id: 'roasted-almond', name: 'Roasted Almond', prices: { iced: 130, hot: 140 } },
           { id: 'honey-americano', name: 'Honey Americano', prices: { iced: 95, hot: 105 } },
           { id: 'caramel-latte', name: 'Caramel Latte', prices: { iced: 140, hot: 145 } },
@@ -34,9 +34,9 @@ export const MENU_SECTIONS: MenuSection[] = [
       {
         name: 'Fruit Tea',
         items: [
-          { id: 'strawberry-fruit-tea', name: 'Strawberry Fruit Tea', prices: { iced: 60 } },
-          { id: 'blueberry-fruit-tea', name: 'Blueberry Fruit Tea', prices: { iced: 60 } },
-          { id: 'green-apple-tea', name: 'Green Apple Tea', prices: { iced: 60 } },
+          { id: 'strawberry-fruit-tea', name: 'Strawberry Fruit Tea', prices: { iced: 95 } },
+          { id: 'blueberry-fruit-tea', name: 'Blueberry Fruit Tea', prices: { iced: 95 } },
+          { id: 'green-apple-tea', name: 'Green Apple Tea', prices: { iced: 95 } },
         ],
       },
     ],
