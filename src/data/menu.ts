@@ -1,7 +1,7 @@
 import type { MenuSection } from '../types/menu'
 
 // Simplified subset of the menu derived from the reference image
-export const MENU_SECTIONS: MenuSection[] = [
+export const DEFAULT_MENU_SECTIONS: MenuSection[] = [
   {
     name: 'Classic Craft Drinks',
     subcategories: [

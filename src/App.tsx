@@ -1,11 +1,28 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import Menu from './components/Menu'
+import Menu from './components/Menu.tsx'
 import Cart from './components/Cart'
 import type { CartItem } from './components/Cart'
 import type { DrinkSize, MenuItem } from './types/menu'
 import Dashboard from './components/Dashboard'
 import { addSale } from './data/stats'
+import { DEFAULT_MENU_SECTIONS } from './data/menu'
+import type { MenuSection } from './types/menu'
+
+const MENU_STORAGE_KEY = 'sg-custom-menu-sections'
+
+function loadMenuSections(): MenuSection[] {
+  try {
+    const raw = localStorage.getItem(MENU_STORAGE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (Array.isArray(parsed)) return parsed as MenuSection[]
+    }
+  } catch {
+    // fall back to defaults
+  }
+  return DEFAULT_MENU_SECTIONS
+}
 
 export default function POS() {
   const [activeTab, setActiveTab] = useState<'pos' | 'sales'>('pos')
@@ -13,6 +30,7 @@ export default function POS() {
   const [cart, setCart] = useState<CartItem[]>([])
   const [paymentType, setPaymentType] = useState<'cash' | 'gcash' | 'card'>('cash')
   const [staff, setStaff] = useState<string>('')
+  const [menuSections, setMenuSections] = useState<MenuSection[]>(loadMenuSections)
 
   // Persist cart for friendlier experience
   useEffect(() => {
@@ -42,6 +60,12 @@ export default function POS() {
       localStorage.setItem('sg-pos-tab', activeTab)
     } catch {}
   }, [activeTab])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MENU_STORAGE_KEY, JSON.stringify(menuSections))
+    } catch {}
+  }, [menuSections])
 
   const connectPrinter = async () => {
     try {
@@ -97,6 +121,51 @@ export default function POS() {
 
   const addItem = (item: MenuItem, size: DrinkSize) =>
     setCart((prev) => [...prev, { item, size, qty: 1, addons: {} }])
+  const updateMenuItem = (sectionIndex: number, subcategoryIndex: number, itemIndex: number, nextItem: MenuItem) => {
+    setMenuSections((prev) => prev.map((section, sIdx) => {
+      if (sIdx !== sectionIndex) return section
+      return {
+        ...section,
+        subcategories: section.subcategories.map((subcategory, subIdx) => {
+          if (subIdx !== subcategoryIndex) return subcategory
+          return {
+            ...subcategory,
+            items: subcategory.items.map((item, iIdx) => (iIdx === itemIndex ? nextItem : item)),
+          }
+        }),
+      }
+    }))
+  }
+  const addMenuItem = (sectionIndex: number, subcategoryIndex: number, item: MenuItem) => {
+    setMenuSections((prev) => prev.map((section, sIdx) => {
+      if (sIdx !== sectionIndex) return section
+      return {
+        ...section,
+        subcategories: section.subcategories.map((subcategory, subIdx) => {
+          if (subIdx !== subcategoryIndex) return subcategory
+          return {
+            ...subcategory,
+            items: [...subcategory.items, item],
+          }
+        }),
+      }
+    }))
+  }
+  const removeMenuItem = (sectionIndex: number, subcategoryIndex: number, itemIndex: number) => {
+    setMenuSections((prev) => prev.map((section, sIdx) => {
+      if (sIdx !== sectionIndex) return section
+      return {
+        ...section,
+        subcategories: section.subcategories.map((subcategory, subIdx) => {
+          if (subIdx !== subcategoryIndex) return subcategory
+          return {
+            ...subcategory,
+            items: subcategory.items.filter((_, iIdx) => iIdx !== itemIndex),
+          }
+        }),
+      }
+    }))
+  }
   const removeItem = (index: number) => setCart((prev) => prev.filter((_, i) => i !== index))
   const clearCart = () => setCart([])
   const changeQty = (index: number, delta: 1 | -1) =>
@@ -216,7 +285,13 @@ export default function POS() {
         <Dashboard />
       ) : (
         <div className="layout">
-          <Menu onAdd={addItem} />
+          <Menu
+            sections={menuSections}
+            onAdd={addItem}
+            onUpdateItem={updateMenuItem}
+            onAddItem={addMenuItem}
+            onRemoveItem={removeMenuItem}
+          />
           <Cart
             items={cart}
             onRemove={removeItem}

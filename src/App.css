@@ -70,6 +70,8 @@ body { background: var(--bg); color: var(--text); display: block; }
   color: var(--text);
 }
 .menu__tabs .active { background: #f1f5f9; border-color: #bbb; }
+.menu__toolbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.menu__subcategory-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .menu__subcategory { margin-bottom: 12px; }
 .menu__subcategory h3 { margin: 8px 0; }
 .menu__grid {
@@ -89,10 +91,27 @@ body { background: var(--bg); color: var(--text); display: block; }
   justify-content: space-between;
   font-weight: 600;
 }
+.menu-card__remove { margin-left: 8px; }
+.menu-card__input,
+.menu-editor input {
+  width: 100%;
+}
 .badge { color: #999; font-size: 12px; }
 .menu-card__prices { display: flex; gap: 8px; margin-top: 8px; }
 .price { border: 1px solid var(--border); background: #f9fafb; padding: 6px 10px; border-radius: 6px; }
 .price { color: var(--text); }
+.price-input { min-width: 84px; }
+.menu-editor {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: #fafafa;
+}
+.menu-editor h4 { margin: 0 0 8px; }
+.menu-editor__row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.menu-editor__row--prices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.btn-add-item { background: #111827; color: #ffffff; }
 
 /* Cart */
 .cart { border: 1px solid var(--border); padding: 12px; background: var(--panel); border-radius: 8px; position: sticky; top: 24px; }
