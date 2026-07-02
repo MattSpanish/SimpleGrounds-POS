@@ -80,8 +80,28 @@ export const MENU_SECTIONS: MenuSection[] = [
           { id: 'sea-salt-caramel', name: 'Sea Salt Caramel', prices: { iced: 155, hot: 160 } },
         ],
       },
+      
     ],
   },
+  
+
+  {
+    name: 'Egg Creme Series',
+    subcategories: [
+      {
+        name: 'Espresso Base',
+        items: [
+          { id: 'Macchiato Crème Caramel', name: 'Macchiato Crème Caramel', prices: { regular: 165 } },
+          { id: 'Strawberry Matcha Brulee', name: 'Strawberry Matcha Brulee', prices: { regular: 150 } },
+          { id: 'Ube Flan', name: 'Ube Flan', prices: { regular: 145 } },
+          { id: 'Smores', name: "S'mores", prices: { regular: 175 } },
+          { id: 'Vietnamese Egg Coffee', name: 'Vietnamese Egg Coffee', prices: { regular: 150 } },
+          { id: 'Vietnamese Crèame Brulee', name: 'Vietnamese Crèame Brulee', prices: { regular: 155 } },
+        ],
+      },
+    ],
+  },
+  
   {
       name: 'Pastries',
     subcategories: [
