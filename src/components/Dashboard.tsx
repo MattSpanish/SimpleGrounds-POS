@@ -97,18 +97,22 @@ export default function Dashboard() {
       ? await db.sales.where('timestamp').between(todayRange.from, todayRange.to, true, true).toArray()
       : await db.expenses.where('timestamp').between(todayRange.from, todayRange.to, true, true).toArray()
 
-    const headers = type === 'sales' ? ['date', 'amount', 'itemsCount'] : ['date', 'amount', 'note']
+    const headers = type === 'sales' ? ['date', 'amount', 'itemsCount', 'paymentType'] : ['date', 'amount', 'note']
     const csvRows = [headers.join(',')]
     let itemsSubtotal = 0
     let amountSubtotal = 0
+    let gcashSubtotal = 0
     for (const r of rows) {
       const date = new Date(r.timestamp).toISOString()
       if (type === 'sales') {
         const s = r as any
         amountSubtotal += Number(s.amount) || 0
+        if ((s.paymentType ?? 'cash') === 'gcash') {
+          gcashSubtotal += Number(s.amount) || 0
+        }
         const count = s.itemsCount ?? (Array.isArray(s.items) ? s.items.reduce((q: number, it: any) => q + (it?.qty ?? 0), 0) : 0)
         itemsSubtotal += count
-        csvRows.push([date, String(s.amount), String(count)].join(','))
+        csvRows.push([date, String(s.amount), String(count), String(s.paymentType ?? 'cash')].join(','))
       } else {
         const e = r as any
         amountSubtotal += Number(e.amount) || 0
@@ -122,6 +126,7 @@ export default function Dashboard() {
     if (type === 'sales') {
       csvRows.push(['Subtotal Amount', String(amountSubtotal), ''].join(','))
       csvRows.push(['Subtotal Items', '', String(itemsSubtotal)].join(','))
+      csvRows.push(['GCash Amount', String(gcashSubtotal), ''].join(','))
     } else {
       csvRows.push(['Subtotal Amount', String(amountSubtotal), ''].join(','))
     }
