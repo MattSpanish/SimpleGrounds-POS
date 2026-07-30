@@ -44,18 +44,20 @@ export default function Cart({ items, onRemove, onClear, onQtyChange, onToggleAd
           <div key={idx} className="cart__row">
             <div>
               <strong>{ci.item.name}</strong> <span className="muted">({ci.size === 'regular' ? 'pastry' : ci.size})</span>
-              <div className="cart__addons">
-                {ADDONS.map((a) => (
-                  <label key={a.id} className="addon">
-                    <input
-                      type="checkbox"
-                      checked={!!ci.addons[a.id]}
-                      onChange={() => onToggleAddon(idx, a.id)}
-                    />
-                    {a.name} +P{a.price}
-                  </label>
-                ))}
-              </div>
+              {ci.size !== 'regular' && (
+                <div className="cart__addons">
+                  {ADDONS.map((a) => (
+                    <label key={a.id} className="addon">
+                      <input
+                        type="checkbox"
+                        checked={!!ci.addons[a.id]}
+                        onChange={() => onToggleAddon(idx, a.id)}
+                      />
+                      {a.name} +P{a.price}
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="cart__qty">
               <button className="secondary" onClick={() => onQtyChange(idx, -1)} disabled={ci.qty <= 1}>-</button>

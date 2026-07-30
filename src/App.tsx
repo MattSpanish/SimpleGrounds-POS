@@ -239,7 +239,7 @@ export default function POS() {
         .filter(([, v]) => v)
         .reduce((s, [id]) => s + (id === 'oatside_oat_milk' ? 45 : id === 'espresso_shot' ? 60 : id === 'biscoff_crumbs' ? 25 : 0), 0)
       const lineTotal = (base + addonsTotal) * ci.qty
-      const left = `${ci.item.name} (${ci.size}) x${ci.qty}`
+      const left = `${ci.item.name} (${ci.size === 'regular' ? 'pastry' : ci.size}) x${ci.qty}`
       const right = formatMoney(lineTotal)
       output += formatLine(left, right)
     })
