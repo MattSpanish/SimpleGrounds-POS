@@ -19,7 +19,7 @@ const endOfWeek = (d = new Date()) => {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999)
 }
 
-function computeShift(_ts?: Date): Shift {
+function computeShift(): Shift {
   return '5pm-2am'
 }
 
@@ -53,7 +53,7 @@ export async function addSale(amount: number, itemsCount: number, options?: {
     items: options?.items,
     paymentType: options?.paymentType,
     staff: options?.staff,
-    shift: computeShift(ts),
+    shift: computeShift(),
     timestamp: ts,
   }
   return db.sales.add(sale)
@@ -140,7 +140,7 @@ export async function getSalesPerShift(from: Date, to: Date): Promise<Record<str
   const rows = await db.sales.where('timestamp').between(from, to, true, true).toArray()
   const out: Record<string, number> = { '5pm-2am': 0, morning: 0, afternoon: 0, evening: 0, night: 0 }
   for (const s of rows) {
-    const sh = s.shift ?? computeShift(s.timestamp)
+    const sh = s.shift ?? computeShift()
     out[sh] = (out[sh] ?? 0) + s.amount
   }
   return out
