@@ -19,23 +19,36 @@ const endOfWeek = (d = new Date()) => {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999)
 }
 
-function computeShift(ts: Date): Shift {
-  const h = ts.getHours()
-  if (h >= 6 && h <= 11) return 'morning'
-  if (h >= 12 && h <= 17) return 'afternoon'
-  if (h >= 18 && h <= 22) return 'evening'
-  return 'night'
+function computeShift(_ts?: Date): Shift {
+  return '5pm-2am'
 }
 
 export async function addSale(amount: number, itemsCount: number, options?: {
   items?: SaleItem[]
   paymentType?: PaymentType
   staff?: string
+  customerName?: string
+  subtotal?: number
+  discount?: number
+  discountType?: import('../types/pos').DiscountType
+  orderNumber?: number
   timestamp?: Date
 }): Promise<number> {
   const ts = options?.timestamp ?? new Date()
+  let orderNumber = options?.orderNumber
+  if (!orderNumber) {
+    const todayStart = startOfDay(ts)
+    const todayCount = await db.sales.where('timestamp').between(todayStart, ts, true, true).count()
+    orderNumber = todayCount + 1
+  }
+
   const sale: Sale = {
+    orderNumber,
     amount,
+    subtotal: options?.subtotal ?? amount,
+    discount: options?.discount ?? 0,
+    discountType: options?.discountType ?? 'none',
+    customerName: options?.customerName,
     itemsCount,
     items: options?.items,
     paymentType: options?.paymentType,
@@ -46,8 +59,8 @@ export async function addSale(amount: number, itemsCount: number, options?: {
   return db.sales.add(sale)
 }
 
-export async function addExpense(amount: number, note?: string, timestamp: Date = new Date()): Promise<number> {
-  const expense: Expense = { amount, note, timestamp }
+export async function addExpense(amount: number, note?: string, category?: string, timestamp: Date = new Date()): Promise<number> {
+  const expense: Expense = { amount, note, category, timestamp }
   return db.expenses.add(expense)
 }
 
@@ -123,12 +136,12 @@ export async function getSalesPerStaff(from: Date, to: Date): Promise<Record<str
   return out
 }
 
-export async function getSalesPerShift(from: Date, to: Date): Promise<Record<Shift, number>> {
+export async function getSalesPerShift(from: Date, to: Date): Promise<Record<string, number>> {
   const rows = await db.sales.where('timestamp').between(from, to, true, true).toArray()
-  const out: Record<Shift, number> = { morning: 0, afternoon: 0, evening: 0, night: 0 }
+  const out: Record<string, number> = { '5pm-2am': 0, morning: 0, afternoon: 0, evening: 0, night: 0 }
   for (const s of rows) {
     const sh = s.shift ?? computeShift(s.timestamp)
-    out[sh] += s.amount
+    out[sh] = (out[sh] ?? 0) + s.amount
   }
   return out
 }
