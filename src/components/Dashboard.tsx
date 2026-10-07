@@ -102,6 +102,7 @@ export default function Dashboard() {
   const [editTimestamp, setEditTimestamp] = useState<string>('')
   const [editItems, setEditItems] = useState<SaleItem[]>([])
   const [adminSalesSearch, setAdminSalesSearch] = useState<string>('')
+  const [adminActiveTab, setAdminActiveTab] = useState<'sales' | 'maintenance'>('sales')
 
   const handleOpenEdit = (s: Sale) => {
     setEditingSale(s)
@@ -1587,6 +1588,7 @@ export default function Dashboard() {
                               e.stopPropagation()
                               setSelectedOrder(s)
                             }}
+                            title="View receipt"
                           >
                             View
                           </button>
@@ -1594,27 +1596,27 @@ export default function Dashboard() {
                             <>
                               <button
                                 type="button"
-                                className="btn-admin-edit-pill"
+                                className="btn-icon-admin btn-icon-edit"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleOpenEdit(s)
                                 }}
                                 title="Edit sale"
+                                aria-label="Edit sale"
                               >
-                                <EditIcon size={12} />
-                                <span>Edit</span>
+                                <EditIcon size={13} />
                               </button>
                               <button
                                 type="button"
-                                className="btn-admin-delete-pill"
+                                className="btn-icon-admin btn-icon-del"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   handleDeleteSale(s)
                                 }}
                                 title="Delete sale"
+                                aria-label="Delete sale"
                               >
-                                <TrashIcon size={12} />
-                                <span>Delete</span>
+                                <TrashIcon size={13} />
                               </button>
                             </>
                           )}
@@ -1635,71 +1637,41 @@ export default function Dashboard() {
           <div className="section-title-wrap">
             <ShieldLockIcon size={17} className="header-icon" />
             <div>
-              <h4>Admin Maintenance & Security</h4>
-              <span className="section-subtitle">Authorized POS operations & database management</span>
+              <h4>Admin Controls & Security</h4>
+              <span className="section-subtitle">
+                {adminAuthorized ? 'Authorized POS operations & record management' : 'Passcode protected management area'}
+              </span>
             </div>
           </div>
 
           {!adminAuthorized ? (
-            <button
-              type="button"
-              className="btn-unlock-admin"
-              onClick={() => setShowAdminPrompt(true)}
-            >
-              <ShieldLockIcon size={14} />
-              <span>Unlock Admin Controls</span>
-            </button>
+            <span className="admin-status-badge is-locked">
+              <ShieldLockIcon size={12} />
+              <span>Locked</span>
+            </span>
           ) : (
-            <div className="admin-actions-bar">
-              <button
-                type="button"
-                className="btn-admin-danger"
-                onClick={async () => {
-                  if (window.confirm('Reset ALL sales history? This will permanently delete recorded sales.')) {
-                    await resetSales()
-                    alert('Sales history has been reset.')
-                  }
-                }}
-              >
-                Reset Sales
-              </button>
-              <button
-                type="button"
-                className="btn-admin-danger"
-                onClick={async () => {
-                  if (window.confirm('Reset ALL expense records? This will permanently delete expenses.')) {
-                    await resetExpenses()
-                    alert('Expenses history has been reset.')
-                  }
-                }}
-              >
-                Reset Expenses
-              </button>
-              <button
-                type="button"
-                className="btn-admin-danger btn-admin-danger-all"
-                onClick={async () => {
-                  if (window.confirm('RESET ALL DATA? This will wipe ALL sales and expenses forever.')) {
-                    await resetAllData()
-                    alert('All data reset complete.')
-                  }
-                }}
-              >
-                Reset All Data
-              </button>
+            <div className="admin-header-tools">
+              <span className="admin-status-badge is-unlocked">
+                <span className="live-dot" />
+                <span>Admin Active</span>
+              </span>
               <button
                 type="button"
                 className="btn-admin-pill"
                 onClick={() => setShowPassSettings(true)}
+                title="Change Passcode"
               >
-                Change Passcode
+                <SettingsIcon size={13} />
+                <span>Passcode</span>
               </button>
               <button
                 type="button"
-                className="btn-admin-pill btn-lock"
+                className="btn-admin-pill btn-admin-lock"
                 onClick={() => setAdminAuthorized(false)}
+                title="Lock Admin Controls"
               >
-                Lock Admin
+                <ShieldLockIcon size={13} />
+                <span>Lock</span>
               </button>
             </div>
           )}
@@ -1707,12 +1679,16 @@ export default function Dashboard() {
 
         {!adminAuthorized ? (
           <div className="admin-locked-notice">
-            <ShieldLockIcon size={28} className="admin-locked-icon" />
-            <div className="admin-locked-texts">
-              <h5>Admin Security Controls Locked</h5>
-              <p>
-                Enter the administrative passcode to access transaction management (edit & delete individual sales records), manage shift records, or perform system database maintenance.
-              </p>
+            <div className="admin-locked-info-group">
+              <div className="admin-locked-icon-wrap">
+                <ShieldLockIcon size={24} />
+              </div>
+              <div className="admin-locked-texts">
+                <h5>Admin Controls Locked</h5>
+                <p>
+                  Enter the administrative passcode to edit or delete sales transactions, manage shift records, or access database maintenance tools.
+                </p>
+              </div>
             </div>
             <button
               type="button"
@@ -1725,123 +1701,210 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="admin-unlocked-panel">
-            <div className="admin-sales-manager-header">
-              <div className="admin-sales-manager-title">
-                <h5>Sales Transaction Management (Edit & Delete)</h5>
-                <span className="admin-sales-manager-subtitle">
-                  Showing {adminFilteredSales.length} {adminFilteredSales.length === 1 ? 'sale' : 'sales'} recorded in {activeRange.label}
-                </span>
-              </div>
-              <div className="admin-sales-search-wrap">
-                <SearchIcon size={14} className="admin-search-icon" />
-                <input
-                  type="text"
-                  placeholder="Filter by ticket #, customer, staff, or payment..."
-                  value={adminSalesSearch}
-                  onChange={(e) => setAdminSalesSearch(e.target.value)}
-                  className="admin-sales-search-input"
-                />
-                {adminSalesSearch && (
-                  <button
-                    type="button"
-                    className="admin-search-clear"
-                    onClick={() => setAdminSalesSearch('')}
-                    title="Clear filter"
-                  >
-                    <XIcon size={13} />
-                  </button>
-                )}
-              </div>
+            {/* Clean Segmented Tab Switcher */}
+            <div className="admin-nav-tabs">
+              <button
+                type="button"
+                className={`admin-nav-tab ${adminActiveTab === 'sales' ? 'is-active' : ''}`}
+                onClick={() => setAdminActiveTab('sales')}
+              >
+                <EditIcon size={14} />
+                <span>Sales Records ({adminFilteredSales.length})</span>
+              </button>
+              <button
+                type="button"
+                className={`admin-nav-tab ${adminActiveTab === 'maintenance' ? 'is-active' : ''}`}
+                onClick={() => setAdminActiveTab('maintenance')}
+              >
+                <SettingsIcon size={14} />
+                <span>Database Tools</span>
+              </button>
             </div>
 
-            {adminFilteredSales.length === 0 ? (
-              <div className="admin-sales-empty">
-                <CoffeeIcon size={24} />
-                <p>No sales records found matching the filter in {activeRange.label}.</p>
-              </div>
-            ) : (
-              <div className="admin-sales-table-wrapper">
-                <table className="ledger-table admin-sales-table">
-                  <thead>
-                    <tr>
-                      <th>Ticket</th>
-                      <th>Order Time</th>
-                      <th>Customer</th>
-                      <th>Items Summary</th>
-                      <th>Staff</th>
-                      <th>Payment</th>
-                      <th style={{ textAlign: 'right' }}>Amount</th>
-                      <th style={{ textAlign: 'center' }}>Admin Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adminFilteredSales.map((s) => {
-                      const payment = s.paymentType ?? 'cash'
-                      const itemsSummary = Array.isArray(s.items) && s.items.length > 0
-                        ? s.items.map((it) => `${it.name} (${it.size}) ×${it.qty}`).join(', ')
-                        : `${s.itemsCount} items`
+            {adminActiveTab === 'sales' && (
+              <div className="admin-tab-pane">
+                <div className="admin-sales-manager-header">
+                  <div className="admin-sales-search-wrap">
+                    <SearchIcon size={14} className="admin-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Filter by ticket #, customer, staff, or payment..."
+                      value={adminSalesSearch}
+                      onChange={(e) => setAdminSalesSearch(e.target.value)}
+                      className="admin-sales-search-input"
+                    />
+                    {adminSalesSearch && (
+                      <button
+                        type="button"
+                        className="admin-search-clear"
+                        onClick={() => setAdminSalesSearch('')}
+                        title="Clear filter"
+                      >
+                        <XIcon size={13} />
+                      </button>
+                    )}
+                  </div>
+                  <span className="admin-sales-count-badge">
+                    {adminFilteredSales.length} {adminFilteredSales.length === 1 ? 'record' : 'records'} in {activeRange.label}
+                  </span>
+                </div>
 
-                      return (
-                        <tr key={s.id} className="clickable-ledger-row">
-                          <td className="col-ticket">
-                            <span className="ticket-number-pill">
-                              #{String(s.orderNumber ?? s.id ?? 1).padStart(3, '0')}
-                            </span>
-                          </td>
-                          <td className="col-time">
-                            {new Date(s.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}{' '}
-                            {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </td>
-                          <td className="col-customer">
-                            {s.customerName ? <span className="customer-tag">{s.customerName}</span> : '—'}
-                          </td>
-                          <td className="col-items" title={itemsSummary}>
-                            {itemsSummary}
-                          </td>
-                          <td className="col-staff">{s.staff || '—'}</td>
-                          <td className="col-payment">
-                            <span className={`payment-tag tag-${payment}`}>
-                              {payment.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="col-amount" style={{ textAlign: 'right' }}>
-                            ₱{s.amount.toLocaleString()}
-                          </td>
-                          <td className="col-action" style={{ textAlign: 'center' }}>
-                            <div className="ledger-actions-group">
-                              <button
-                                type="button"
-                                className="btn-inspect-pill"
-                                onClick={() => setSelectedOrder(s)}
-                                title="View receipt"
-                              >
-                                View
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-admin-edit-pill"
-                                onClick={() => handleOpenEdit(s)}
-                                title="Edit sale"
-                              >
-                                <EditIcon size={12} />
-                                <span>Edit</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-admin-delete-pill"
-                                onClick={() => handleDeleteSale(s)}
-                                title="Delete sale"
-                              >
-                                <TrashIcon size={12} />
-                                <span>Delete</span>
-                              </button>
-                            </div>
-                          </td>
+                {adminFilteredSales.length === 0 ? (
+                  <div className="admin-sales-empty">
+                    <CoffeeIcon size={24} />
+                    <p>No sales records found matching the filter in {activeRange.label}.</p>
+                  </div>
+                ) : (
+                  <div className="admin-sales-table-wrapper">
+                    <table className="ledger-table admin-sales-table">
+                      <thead>
+                        <tr>
+                          <th>Ticket</th>
+                          <th>Order Time</th>
+                          <th>Customer</th>
+                          <th>Items Summary</th>
+                          <th>Staff</th>
+                          <th>Payment</th>
+                          <th style={{ textAlign: 'right' }}>Amount</th>
+                          <th style={{ textAlign: 'center' }}>Actions</th>
                         </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody>
+                        {adminFilteredSales.map((s) => {
+                          const payment = s.paymentType ?? 'cash'
+                          const itemsSummary = Array.isArray(s.items) && s.items.length > 0
+                            ? s.items.map((it) => `${it.name} (${it.size}) ×${it.qty}`).join(', ')
+                            : `${s.itemsCount} items`
+
+                          return (
+                            <tr
+                              key={s.id}
+                              className="clickable-ledger-row"
+                              onClick={() => setSelectedOrder(s)}
+                              title="Click row to view receipt details"
+                            >
+                              <td className="col-ticket">
+                                <span className="ticket-number-pill">
+                                  #{String(s.orderNumber ?? s.id ?? 1).padStart(3, '0')}
+                                </span>
+                              </td>
+                              <td className="col-time">
+                                {new Date(s.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}{' '}
+                                {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </td>
+                              <td className="col-customer">
+                                {s.customerName ? <span className="customer-tag">{s.customerName}</span> : '—'}
+                              </td>
+                              <td className="col-items" title={itemsSummary}>
+                                {itemsSummary}
+                              </td>
+                              <td className="col-staff">{s.staff || '—'}</td>
+                              <td className="col-payment">
+                                <span className={`payment-tag tag-${payment}`}>
+                                  {payment.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className="col-amount" style={{ textAlign: 'right' }}>
+                                ₱{s.amount.toLocaleString()}
+                              </td>
+                              <td className="col-action" style={{ textAlign: 'center' }}>
+                                <div className="admin-table-action-btns">
+                                  <button
+                                    type="button"
+                                    className="btn-admin-edit-pill"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleOpenEdit(s)
+                                    }}
+                                    title="Edit sale"
+                                  >
+                                    <EditIcon size={12} />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-admin-delete-pill"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteSale(s)
+                                    }}
+                                    title="Delete sale"
+                                  >
+                                    <TrashIcon size={12} />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {adminActiveTab === 'maintenance' && (
+              <div className="admin-tab-pane admin-maintenance-pane">
+                <div className="admin-reset-cards-grid">
+                  <div className="admin-reset-card">
+                    <div className="reset-card-info">
+                      <h6>Reset Sales History</h6>
+                      <p>Permanently deletes all recorded sales. Operating expenses remain intact.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-admin-danger"
+                      onClick={async () => {
+                        if (window.confirm('Reset ALL sales history? This will permanently delete recorded sales.')) {
+                          await resetSales()
+                          alert('Sales history has been reset.')
+                        }
+                      }}
+                    >
+                      Clear Sales Records
+                    </button>
+                  </div>
+
+                  <div className="admin-reset-card">
+                    <div className="reset-card-info">
+                      <h6>Reset Expenses History</h6>
+                      <p>Permanently deletes all recorded store expenses. Sales history remains intact.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-admin-danger"
+                      onClick={async () => {
+                        if (window.confirm('Reset ALL expense records? This will permanently delete expenses.')) {
+                          await resetExpenses()
+                          alert('Expenses history has been reset.')
+                        }
+                      }}
+                    >
+                      Clear Expense Records
+                    </button>
+                  </div>
+
+                  <div className="admin-reset-card reset-card-danger">
+                    <div className="reset-card-info">
+                      <h6>Wipe All POS Data</h6>
+                      <p>Complete factory reset. Permanently clears all sales history and expense records.</p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-admin-danger btn-admin-danger-all"
+                      onClick={async () => {
+                        if (window.confirm('RESET ALL DATA? This will permanently wipe ALL sales and expenses forever.')) {
+                          await resetAllData()
+                          alert('All data reset complete.')
+                        }
+                      }}
+                    >
+                      Reset All Database Data
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </div>
