@@ -22,6 +22,7 @@ import {
   ClockIcon,
   CoffeeIcon,
   CreditCardIcon,
+  CroissantIcon,
   DollarSignIcon,
   DownloadIcon,
   PlusIcon,
@@ -35,6 +36,28 @@ import {
 } from './Icons'
 
 type TimeframePreset = 'today' | 'yesterday' | 'week' | 'month'
+
+function isPastryOrFoodItem(it: { id?: string; name?: string; size?: string }): boolean {
+  if (it.size === 'iced' || it.size === 'hot') return false
+  const id = (it.id || '').toLowerCase()
+  const name = (it.name || '').toLowerCase()
+  return (
+    id.includes('mango-graham') ||
+    id.includes('biscoff cream') ||
+    id.includes('pastry') ||
+    id.includes('cookie') ||
+    id.includes('cake') ||
+    id.includes('croissant') ||
+    id.includes('muffin') ||
+    name.includes('graham') ||
+    name.includes('biscoff cream') ||
+    name.includes('pastry') ||
+    name.includes('cookie') ||
+    name.includes('cake') ||
+    name.includes('croissant') ||
+    name.includes('muffin')
+  )
+}
 
 export default function Dashboard() {
   const [timeframe, setTimeframe] = useState<TimeframePreset>('today')
@@ -142,16 +165,24 @@ export default function Dashboard() {
   const profitMargin = salesActive > 0 ? ((netProfit / salesActive) * 100).toFixed(1) : '0'
   const avgTicket = salesCount > 0 ? Math.round(salesActive / salesCount) : 0
 
-  const cupsActive = useMemo(() => {
-    return salesRows.reduce((sum, row) => {
-      if (Array.isArray(row.items)) {
-        const nonPastryCount = row.items
-          .filter((it) => it.size !== 'regular')
-          .reduce((qty, it) => qty + it.qty, 0)
-        return sum + nonPastryCount
+  const { beveragesActive, pastriesActive } = useMemo(() => {
+    let bevs = 0
+    let pastries = 0
+    for (const row of salesRows) {
+      if (Array.isArray(row.items) && row.items.length > 0) {
+        for (const it of row.items) {
+          const qty = it.qty || 1
+          if (isPastryOrFoodItem(it)) {
+            pastries += qty
+          } else {
+            bevs += qty
+          }
+        }
+      } else {
+        bevs += row.itemsCount ?? 0
       }
-      return sum + (row.itemsCount ?? 0)
-    }, 0)
+    }
+    return { beveragesActive: bevs, pastriesActive: pastries }
   }, [salesRows])
 
   const bestSellers = useLiveQuery(async () => {
@@ -205,11 +236,13 @@ export default function Dashboard() {
 
   const exportCSV = async (type: 'sales' | 'expenses') => {
     const headers = type === 'sales'
-      ? ['date', 'amount', 'itemsCount', 'paymentType', 'staff', 'shift', 'items']
+      ? ['date', 'amount', 'totalItems', 'beverages', 'pastries_cups', 'paymentType', 'staff', 'shift', 'items']
       : ['date', 'amount', 'note']
 
     const csvRows = [headers.join(',')]
     let itemsSubtotal = 0
+    let beveragesSubtotal = 0
+    let pastriesSubtotal = 0
     let amountSubtotal = 0
     let gcashSubtotal = 0
 
@@ -220,8 +253,27 @@ export default function Dashboard() {
         if ((s.paymentType ?? 'cash') === 'gcash') {
           gcashSubtotal += Number(s.amount) || 0
         }
-        const count = s.itemsCount ?? (Array.isArray(s.items) ? s.items.reduce((q: number, it: SaleItem) => q + (it?.qty ?? 0), 0) : 0)
+
+        let rowBeverages = 0
+        let rowPastries = 0
+        if (Array.isArray(s.items) && s.items.length > 0) {
+          for (const it of s.items) {
+            const qty = it.qty || 1
+            if (isPastryOrFoodItem(it)) {
+              rowPastries += qty
+            } else {
+              rowBeverages += qty
+            }
+          }
+        } else {
+          rowBeverages = s.itemsCount ?? 0
+        }
+
+        const count = s.itemsCount ?? (rowBeverages + rowPastries)
         itemsSubtotal += count
+        beveragesSubtotal += rowBeverages
+        pastriesSubtotal += rowPastries
+
         const itemsStr = Array.isArray(s.items)
           ? `"${s.items.map((it: SaleItem) => `${it.name} (${it.size}) x${it.qty}`).join('; ')}"`
           : '""'
@@ -229,6 +281,8 @@ export default function Dashboard() {
           date,
           String(s.amount),
           String(count),
+          String(rowBeverages),
+          String(rowPastries),
           String(s.paymentType ?? 'cash'),
           String(s.staff ?? 'None'),
           String(s.shift ?? ''),
@@ -247,7 +301,9 @@ export default function Dashboard() {
     csvRows.push('')
     if (type === 'sales') {
       csvRows.push(['Subtotal Amount', String(amountSubtotal)].join(','))
-      csvRows.push(['Subtotal Items Sold', String(itemsSubtotal)].join(','))
+      csvRows.push(['Total Items Sold', String(itemsSubtotal)].join(','))
+      csvRows.push(['Total Beverages (Drinks)', String(beveragesSubtotal)].join(','))
+      csvRows.push(['Total Dessert Cups & Pastries', String(pastriesSubtotal)].join(','))
       csvRows.push(['GCash Total', String(gcashSubtotal)].join(','))
     } else {
       csvRows.push(['Total Expenses', String(amountSubtotal)].join(','))
@@ -641,16 +697,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="kpi-card kpi-cups">
+        <div className="kpi-card kpi-beverages">
           <div className="kpi-card-header">
-            <span className="kpi-title">Beverages / Cups</span>
+            <span className="kpi-title">Beverages</span>
             <div className="kpi-icon-wrap icon-amber">
               <CoffeeIcon size={18} />
             </div>
           </div>
-          <div className="kpi-value">{cupsActive.toLocaleString()}</div>
+          <div className="kpi-value">{beveragesActive.toLocaleString()}</div>
           <div className="kpi-subtext">
-            <span>Drinks brewed (excl. food)</span>
+            <span>Drinks brewed (coffee & tea)</span>
+          </div>
+        </div>
+
+        <div className="kpi-card kpi-pastries">
+          <div className="kpi-card-header">
+            <span className="kpi-title">Dessert Cups & Pastries</span>
+            <div className="kpi-icon-wrap icon-orange">
+              <CroissantIcon size={18} />
+            </div>
+          </div>
+          <div className="kpi-value">{pastriesActive.toLocaleString()}</div>
+          <div className="kpi-subtext">
+            <span>Graham cups & pastries sold</span>
           </div>
         </div>
 

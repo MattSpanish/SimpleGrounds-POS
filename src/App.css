@@ -1675,8 +1675,8 @@
 /* KPI Cards Grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
 }
 
 .kpi-card {
@@ -1724,6 +1724,7 @@
 .icon-emerald { background: #dcfce7; color: #059669; }
 .icon-rose { background: #ffe4e6; color: #e11d48; }
 .icon-amber { background: #fef3c7; color: #d97706; }
+.icon-orange { background: #ffedd5; color: #ea580c; }
 .icon-blue { background: #e0f2fe; color: #0284c7; }
 
 .kpi-value {
