@@ -158,6 +158,14 @@ export async function getHourlySales(from: Date, to: Date): Promise<number[]> {
 
 export const dateUtils = { startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek }
 
+export async function deleteSale(id: number): Promise<void> {
+  await db.sales.delete(id)
+}
+
+export async function updateSale(id: number, changes: Partial<Sale>): Promise<void> {
+  await db.sales.update(id, changes)
+}
+
 export async function resetSales(): Promise<void> {
   await db.sales.clear()
 }
@@ -172,3 +180,4 @@ export async function resetAllData(): Promise<void> {
     await db.expenses.clear()
   })
 }
+

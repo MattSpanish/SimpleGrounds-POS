@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../data/db'
-import type { Sale, SaleItem } from '../types/pos'
+import type { Sale, SaleItem, PaymentType, Shift, DiscountType } from '../types/pos'
 import {
   addExpense,
   dateUtils,
@@ -10,6 +10,8 @@ import {
   getSalesPerStaff,
   getSalesPerShift,
   getHourlySales,
+  deleteSale,
+  updateSale,
   resetSales,
   resetExpenses,
   resetAllData,
@@ -25,10 +27,14 @@ import {
   CroissantIcon,
   DollarSignIcon,
   DownloadIcon,
+  EditIcon,
+  MinusIcon,
   PlusIcon,
+  SearchIcon,
   SettingsIcon,
   ShieldLockIcon,
   SmartphoneIcon,
+  TrashIcon,
   TrendingUpIcon,
   TrendingDownIcon,
   UsersIcon,
@@ -81,6 +87,110 @@ export default function Dashboard() {
   const [showPassSettings, setShowPassSettings] = useState(false)
   const [newPass, setNewPass] = useState('')
   const [newPassConfirm, setNewPassConfirm] = useState('')
+
+  // Admin edit & delete sale state
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
+  const [editOrderNum, setEditOrderNum] = useState<number>(1)
+  const [editCustomerName, setEditCustomerName] = useState<string>('')
+  const [editStaff, setEditStaff] = useState<string>('')
+  const [editPaymentType, setEditPaymentType] = useState<PaymentType>('cash')
+  const [editShift, setEditShift] = useState<Shift>('5pm-2am')
+  const [editSubtotal, setEditSubtotal] = useState<string>('')
+  const [editDiscount, setEditDiscount] = useState<string>('')
+  const [editDiscountType, setEditDiscountType] = useState<DiscountType>('none')
+  const [editAmount, setEditAmount] = useState<string>('')
+  const [editTimestamp, setEditTimestamp] = useState<string>('')
+  const [editItems, setEditItems] = useState<SaleItem[]>([])
+  const [adminSalesSearch, setAdminSalesSearch] = useState<string>('')
+
+  const handleOpenEdit = (s: Sale) => {
+    setEditingSale(s)
+    setEditOrderNum(s.orderNumber ?? s.id ?? 1)
+    setEditCustomerName(s.customerName || '')
+    setEditStaff(s.staff || '')
+    setEditPaymentType(s.paymentType || 'cash')
+    setEditShift(s.shift || '5pm-2am')
+    setEditSubtotal(String(s.subtotal ?? s.amount ?? 0))
+    setEditDiscount(String(s.discount ?? 0))
+    setEditDiscountType(s.discountType || 'none')
+    setEditAmount(String(s.amount ?? 0))
+    const d = new Date(s.timestamp)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const localIso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    setEditTimestamp(localIso)
+    setEditItems(Array.isArray(s.items) ? JSON.parse(JSON.stringify(s.items)) : [])
+  }
+
+  const handleDeleteSale = async (s: Sale) => {
+    if (!adminAuthorized) {
+      setShowAdminPrompt(true)
+      return
+    }
+    if (s.id == null) return
+
+    const ticketName = `Ticket #${String(s.orderNumber ?? s.id).padStart(3, '0')}`
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently DELETE ${ticketName} (₱${s.amount.toLocaleString()})?\n\nThis cannot be undone and will update all sales analytics.`
+    )
+    if (!confirmed) return
+
+    try {
+      await deleteSale(s.id)
+      if (selectedOrder?.id === s.id) {
+        setSelectedOrder(null)
+      }
+      if (editingSale?.id === s.id) {
+        setEditingSale(null)
+      }
+      alert(`${ticketName} has been permanently deleted.`)
+    } catch (err) {
+      console.error('Failed to delete sale:', err)
+      alert('Failed to delete sale record.')
+    }
+  }
+
+  const handleSaveSaleEdit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingSale || editingSale.id == null) return
+
+    const parsedAmount = parseFloat(editAmount)
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+      alert('Please enter a valid total amount.')
+      return
+    }
+
+    const parsedSubtotal = parseFloat(editSubtotal)
+    const parsedDiscount = parseFloat(editDiscount)
+    const totalItemsCount = editItems.reduce((acc, it) => acc + (it.qty || 1), 0)
+    const updatedDate = editTimestamp ? new Date(editTimestamp) : new Date(editingSale.timestamp)
+
+    const changes: Partial<Sale> = {
+      orderNumber: Number(editOrderNum) || 1,
+      customerName: editCustomerName.trim() || '',
+      staff: editStaff.trim() || '',
+      paymentType: editPaymentType,
+      shift: editShift,
+      subtotal: isNaN(parsedSubtotal) ? parsedAmount : parsedSubtotal,
+      discount: isNaN(parsedDiscount) ? 0 : parsedDiscount,
+      discountType: editDiscountType,
+      amount: parsedAmount,
+      itemsCount: totalItemsCount > 0 ? totalItemsCount : (editingSale.itemsCount || 1),
+      items: editItems.length > 0 ? editItems : undefined,
+      timestamp: isNaN(updatedDate.getTime()) ? new Date(editingSale.timestamp) : updatedDate,
+    }
+
+    try {
+      await updateSale(editingSale.id, changes)
+      if (selectedOrder?.id === editingSale.id) {
+        setSelectedOrder({ ...editingSale, ...changes })
+      }
+      setEditingSale(null)
+      alert(`Ticket #${String(changes.orderNumber).padStart(3, '0')} updated successfully!`)
+    } catch (err) {
+      console.error('Failed to update sale:', err)
+      alert('Failed to update sale record.')
+    }
+  }
 
   // Compute active date range based on preset or selectedDate
   const activeRange = useMemo(() => {
@@ -143,6 +253,19 @@ export default function Dashboard() {
       return staffMatch || customerMatch || paymentMatch || orderNumMatch || itemsMatch
     })
   }, [salesRows, ledgerFilter])
+
+  const adminFilteredSales = useMemo(() => {
+    if (!adminSalesSearch.trim()) return salesRows
+    const q = adminSalesSearch.toLowerCase().trim()
+    return salesRows.filter((s) => {
+      const staffMatch = s.staff && s.staff.toLowerCase().includes(q)
+      const customerMatch = s.customerName && s.customerName.toLowerCase().includes(q)
+      const paymentMatch = s.paymentType && s.paymentType.toLowerCase().includes(q)
+      const orderNumMatch = s.orderNumber && String(s.orderNumber).includes(q)
+      const itemsMatch = Array.isArray(s.items) && s.items.some((it) => it.name.toLowerCase().includes(q))
+      return staffMatch || customerMatch || paymentMatch || orderNumMatch || itemsMatch
+    })
+  }, [salesRows, adminSalesSearch])
 
   const rawExpenseRows = useLiveQuery(async () => {
     return db.expenses.where('timestamp').between(activeRange.from, activeRange.to, true, true).toArray()
@@ -647,7 +770,314 @@ export default function Dashboard() {
                   <span className="grand-val">₱{selectedOrder.amount.toLocaleString()}</span>
                 </div>
               </div>
+
+              <div className="inspector-actions-footer">
+                {adminAuthorized ? (
+                  <div className="inspector-admin-actions">
+                    <button
+                      type="button"
+                      className="btn-inspector-edit"
+                      onClick={() => handleOpenEdit(selectedOrder)}
+                    >
+                      <EditIcon size={14} />
+                      <span>Edit Ticket</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-inspector-delete"
+                      onClick={() => handleDeleteSale(selectedOrder)}
+                    >
+                      <TrashIcon size={14} />
+                      <span>Delete Ticket</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-inspector-unlock"
+                    onClick={() => setShowAdminPrompt(true)}
+                  >
+                    <ShieldLockIcon size={14} />
+                    <span>Admin Controls (Unlock to Edit/Delete)</span>
+                  </button>
+                )}
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Sale Modal */}
+      {editingSale && (
+        <div className="modal-backdrop" onClick={() => setEditingSale(null)}>
+          <div className="modal-window edit-sale-modal-window" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-header-title">
+                <EditIcon size={18} />
+                <h4>Edit Ticket #{editOrderNum}</h4>
+              </div>
+              <button
+                type="button"
+                className="modal-close-btn"
+                onClick={() => setEditingSale(null)}
+                aria-label="Close"
+              >
+                <XIcon size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSaleEdit} className="edit-sale-form">
+              <div className="modal-content edit-sale-content">
+                <div className="edit-sale-grid">
+                  {/* Ticket Number */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Ticket / Order #</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className="edit-field-input"
+                      value={editOrderNum}
+                      onChange={(e) => setEditOrderNum(parseInt(e.target.value) || 1)}
+                      required
+                    />
+                  </div>
+
+                  {/* Date & Time */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Date & Time</label>
+                    <input
+                      type="datetime-local"
+                      className="edit-field-input"
+                      value={editTimestamp}
+                      onChange={(e) => setEditTimestamp(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Customer Name */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Customer Name</label>
+                    <input
+                      type="text"
+                      className="edit-field-input"
+                      placeholder="Walk-in / Customer callout"
+                      value={editCustomerName}
+                      onChange={(e) => setEditCustomerName(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Staff / Cashier */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Cashier / Staff</label>
+                    <input
+                      type="text"
+                      className="edit-field-input"
+                      placeholder="Cashier name"
+                      value={editStaff}
+                      onChange={(e) => setEditStaff(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Payment Method */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Payment Method</label>
+                    <select
+                      className="edit-field-select"
+                      value={editPaymentType}
+                      onChange={(e) => setEditPaymentType(e.target.value as PaymentType)}
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="gcash">GCash</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </div>
+
+                  {/* Shift */}
+                  <div className="edit-field-group">
+                    <label className="edit-field-label">Shift</label>
+                    <select
+                      className="edit-field-select"
+                      value={editShift}
+                      onChange={(e) => setEditShift(e.target.value as Shift)}
+                    >
+                      <option value="5pm-2am">5PM – 2AM</option>
+                      <option value="morning">Morning (Legacy)</option>
+                      <option value="afternoon">Afternoon (Legacy)</option>
+                      <option value="evening">Evening (Legacy)</option>
+                      <option value="night">Night (Legacy)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Items List */}
+                <div className="edit-items-card">
+                  <div className="edit-items-header">
+                    <span className="edit-items-title">
+                      Ordered Items ({editItems.reduce((acc, it) => acc + (it.qty || 1), 0)})
+                    </span>
+                  </div>
+                  {editItems.length === 0 ? (
+                    <div className="empty-subtext">No itemized lines recorded for this transaction.</div>
+                  ) : (
+                    <div className="edit-items-list">
+                      {editItems.map((item, idx) => (
+                        <div key={idx} className="edit-item-row">
+                          <div className="edit-item-info">
+                            <span className="edit-item-name">{item.name}</span>
+                            <span className={`size-tag size-tag--${item.size}`}>{item.size?.toUpperCase()}</span>
+                            {item.itemPrice && (
+                              <span className="edit-item-price-tag">₱{item.itemPrice} ea</span>
+                            )}
+                          </div>
+                          <div className="edit-item-controls">
+                            <button
+                              type="button"
+                              className="edit-qty-btn"
+                              onClick={() => {
+                                setEditItems((prev) => {
+                                  const next = [...prev]
+                                  if (next[idx].qty > 1) {
+                                    next[idx] = { ...next[idx], qty: next[idx].qty - 1 }
+                                  } else {
+                                    next.splice(idx, 1)
+                                  }
+                                  return next
+                                })
+                              }}
+                              title="Decrease quantity or remove"
+                            >
+                              <MinusIcon size={12} />
+                            </button>
+                            <span className="edit-item-qty">{item.qty}</span>
+                            <button
+                              type="button"
+                              className="edit-qty-btn"
+                              onClick={() => {
+                                setEditItems((prev) => {
+                                  const next = [...prev]
+                                  next[idx] = { ...next[idx], qty: (next[idx].qty || 1) + 1 }
+                                  return next
+                                })
+                              }}
+                              title="Increase quantity"
+                            >
+                              <PlusIcon size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              className="edit-item-del-btn"
+                              onClick={() => {
+                                setEditItems((prev) => prev.filter((_, i) => i !== idx))
+                              }}
+                              title="Remove item"
+                            >
+                              <TrashIcon size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Financials Breakdown */}
+                <div className="edit-financials-card">
+                  <div className="edit-fin-row">
+                    <label>Subtotal (₱)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="edit-fin-input"
+                      value={editSubtotal}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setEditSubtotal(val)
+                        const numSub = parseFloat(val) || 0
+                        const numDisc = parseFloat(editDiscount) || 0
+                        setEditAmount(String(Math.max(0, numSub - numDisc)))
+                      }}
+                    />
+                  </div>
+                  <div className="edit-fin-row">
+                    <label>Discount Type</label>
+                    <select
+                      className="edit-fin-select"
+                      value={editDiscountType}
+                      onChange={(e) => {
+                        const dt = e.target.value as DiscountType
+                        setEditDiscountType(dt)
+                        const numSub = parseFloat(editSubtotal) || 0
+                        if (dt === 'senior' || dt === 'pwd' || dt === 'loyalty_10') {
+                          const d = Math.round(numSub * 0.1)
+                          setEditDiscount(String(d))
+                          setEditAmount(String(Math.max(0, numSub - d)))
+                        } else if (dt === 'loyalty_50') {
+                          const d = Math.round(numSub * 0.5)
+                          setEditDiscount(String(d))
+                          setEditAmount(String(Math.max(0, numSub - d)))
+                        } else if (dt === 'none') {
+                          setEditDiscount('0')
+                          setEditAmount(String(numSub))
+                        }
+                      }}
+                    >
+                      <option value="none">None (0%)</option>
+                      <option value="senior">Senior Citizen (10%)</option>
+                      <option value="pwd">PWD (10%)</option>
+                      <option value="loyalty_10">Loyalty Promo (10%)</option>
+                      <option value="loyalty_50">Loyalty Promo (50%)</option>
+                      <option value="custom">Custom Amount</option>
+                    </select>
+                  </div>
+                  <div className="edit-fin-row">
+                    <label>Discount Amount (₱)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="edit-fin-input"
+                      value={editDiscount}
+                      onChange={(e) => {
+                        const disc = e.target.value
+                        setEditDiscount(disc)
+                        const numSub = parseFloat(editSubtotal) || 0
+                        const numDisc = parseFloat(disc) || 0
+                        setEditAmount(String(Math.max(0, numSub - numDisc)))
+                      }}
+                    />
+                  </div>
+                  <div className="edit-fin-row edit-fin-row-total">
+                    <label>Grand Total (₱)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="edit-fin-input edit-fin-input-total"
+                      value={editAmount}
+                      onChange={(e) => setEditAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer edit-modal-footer">
+                <button
+                  type="button"
+                  className="btn-pos-secondary"
+                  onClick={() => setEditingSale(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-pos-primary btn-save-edit"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -1149,16 +1579,46 @@ export default function Dashboard() {
                       </td>
                       <td className="col-amount">₱{s.amount.toLocaleString()}</td>
                       <td className="col-action" style={{ textAlign: 'center' }}>
-                        <button
-                          type="button"
-                          className="btn-inspect-pill"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedOrder(s)
-                          }}
-                        >
-                          View
-                        </button>
+                        <div className="ledger-actions-group">
+                          <button
+                            type="button"
+                            className="btn-inspect-pill"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedOrder(s)
+                            }}
+                          >
+                            View
+                          </button>
+                          {adminAuthorized && (
+                            <>
+                              <button
+                                type="button"
+                                className="btn-admin-edit-pill"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleOpenEdit(s)
+                                }}
+                                title="Edit sale"
+                              >
+                                <EditIcon size={12} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-admin-delete-pill"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteSale(s)
+                                }}
+                                title="Delete sale"
+                              >
+                                <TrashIcon size={12} />
+                                <span>Delete</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )
@@ -1244,7 +1704,150 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {!adminAuthorized ? (
+          <div className="admin-locked-notice">
+            <ShieldLockIcon size={28} className="admin-locked-icon" />
+            <div className="admin-locked-texts">
+              <h5>Admin Security Controls Locked</h5>
+              <p>
+                Enter the administrative passcode to access transaction management (edit & delete individual sales records), manage shift records, or perform system database maintenance.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn-pos-primary btn-unlock-panel"
+              onClick={() => setShowAdminPrompt(true)}
+            >
+              <ShieldLockIcon size={15} />
+              <span>Unlock Admin Controls</span>
+            </button>
+          </div>
+        ) : (
+          <div className="admin-unlocked-panel">
+            <div className="admin-sales-manager-header">
+              <div className="admin-sales-manager-title">
+                <h5>Sales Transaction Management (Edit & Delete)</h5>
+                <span className="admin-sales-manager-subtitle">
+                  Showing {adminFilteredSales.length} {adminFilteredSales.length === 1 ? 'sale' : 'sales'} recorded in {activeRange.label}
+                </span>
+              </div>
+              <div className="admin-sales-search-wrap">
+                <SearchIcon size={14} className="admin-search-icon" />
+                <input
+                  type="text"
+                  placeholder="Filter by ticket #, customer, staff, or payment..."
+                  value={adminSalesSearch}
+                  onChange={(e) => setAdminSalesSearch(e.target.value)}
+                  className="admin-sales-search-input"
+                />
+                {adminSalesSearch && (
+                  <button
+                    type="button"
+                    className="admin-search-clear"
+                    onClick={() => setAdminSalesSearch('')}
+                    title="Clear filter"
+                  >
+                    <XIcon size={13} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {adminFilteredSales.length === 0 ? (
+              <div className="admin-sales-empty">
+                <CoffeeIcon size={24} />
+                <p>No sales records found matching the filter in {activeRange.label}.</p>
+              </div>
+            ) : (
+              <div className="admin-sales-table-wrapper">
+                <table className="ledger-table admin-sales-table">
+                  <thead>
+                    <tr>
+                      <th>Ticket</th>
+                      <th>Order Time</th>
+                      <th>Customer</th>
+                      <th>Items Summary</th>
+                      <th>Staff</th>
+                      <th>Payment</th>
+                      <th style={{ textAlign: 'right' }}>Amount</th>
+                      <th style={{ textAlign: 'center' }}>Admin Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminFilteredSales.map((s) => {
+                      const payment = s.paymentType ?? 'cash'
+                      const itemsSummary = Array.isArray(s.items) && s.items.length > 0
+                        ? s.items.map((it) => `${it.name} (${it.size}) ×${it.qty}`).join(', ')
+                        : `${s.itemsCount} items`
+
+                      return (
+                        <tr key={s.id} className="clickable-ledger-row">
+                          <td className="col-ticket">
+                            <span className="ticket-number-pill">
+                              #{String(s.orderNumber ?? s.id ?? 1).padStart(3, '0')}
+                            </span>
+                          </td>
+                          <td className="col-time">
+                            {new Date(s.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}{' '}
+                            {new Date(s.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="col-customer">
+                            {s.customerName ? <span className="customer-tag">{s.customerName}</span> : '—'}
+                          </td>
+                          <td className="col-items" title={itemsSummary}>
+                            {itemsSummary}
+                          </td>
+                          <td className="col-staff">{s.staff || '—'}</td>
+                          <td className="col-payment">
+                            <span className={`payment-tag tag-${payment}`}>
+                              {payment.toUpperCase()}
+                            </span>
+                          </td>
+                          <td className="col-amount" style={{ textAlign: 'right' }}>
+                            ₱{s.amount.toLocaleString()}
+                          </td>
+                          <td className="col-action" style={{ textAlign: 'center' }}>
+                            <div className="ledger-actions-group">
+                              <button
+                                type="button"
+                                className="btn-inspect-pill"
+                                onClick={() => setSelectedOrder(s)}
+                                title="View receipt"
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-admin-edit-pill"
+                                onClick={() => handleOpenEdit(s)}
+                                title="Edit sale"
+                              >
+                                <EditIcon size={12} />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="btn-admin-delete-pill"
+                                onClick={() => handleDeleteSale(s)}
+                                title="Delete sale"
+                              >
+                                <TrashIcon size={12} />
+                                <span>Delete</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
 }
+

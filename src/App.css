@@ -3170,6 +3170,513 @@
   border-color: var(--brand-espresso);
 }
 
+/* Ledger Actions Group */
+.ledger-actions-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+
+.btn-admin-edit-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn-admin-edit-pill:hover {
+  background: #fde68a;
+  color: #92400e;
+  border-color: #d97706;
+}
+
+.btn-admin-delete-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn-admin-delete-pill:hover {
+  background: #fca5a5;
+  color: #991b1b;
+  border-color: #dc2626;
+}
+
+/* Inspector Footer Actions */
+.inspector-actions-footer {
+  border-top: 1px solid var(--border-light);
+  padding-top: 14px;
+  margin-top: 4px;
+  display: flex;
+}
+
+.inspector-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 10px;
+}
+
+.btn-inspector-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid rgba(217, 119, 6, 0.3);
+  transition: all 0.12s ease;
+}
+
+.btn-inspector-edit:hover {
+  background: #fde68a;
+  border-color: #d97706;
+}
+
+.btn-inspector-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  transition: all 0.12s ease;
+}
+
+.btn-inspector-delete:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.btn-inspector-unlock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  border: 1px dashed var(--border-light);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.12s ease;
+}
+
+.btn-inspector-unlock:hover {
+  border-color: var(--brand-espresso);
+  color: var(--brand-espresso);
+}
+
+/* Admin Maintenance Locked & Unlocked Panels */
+.admin-locked-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-light);
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.admin-locked-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.admin-locked-texts {
+  flex: 1;
+  min-width: 240px;
+}
+
+.admin-locked-texts h5 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.admin-locked-texts p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.btn-unlock-panel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.admin-unlocked-panel {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-sales-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.admin-sales-manager-title h5 {
+  margin: 0;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.admin-sales-manager-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.admin-sales-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 0 10px;
+  min-width: 280px;
+}
+
+.admin-sales-search-wrap:focus-within {
+  border-color: var(--brand-gold);
+}
+
+.admin-search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.admin-sales-search-input {
+  border: none;
+  outline: none;
+  padding: 7px 0;
+  font-size: 0.82rem;
+  width: 100%;
+  background: transparent;
+}
+
+.admin-search-clear {
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.admin-sales-table-wrapper {
+  overflow-x: auto;
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.admin-sales-table th {
+  position: sticky;
+  top: 0;
+  background: var(--surface-subtle);
+  z-index: 2;
+}
+
+.admin-sales-empty {
+  padding: 32px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Edit Sale Modal */
+.edit-sale-modal-window {
+  width: min(640px, 95vw);
+}
+
+.edit-sale-form {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.edit-sale-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.edit-sale-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.edit-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.edit-field-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.edit-field-input,
+.edit-field-select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  font-size: 0.88rem;
+  background: var(--surface-subtle);
+  color: var(--text-main);
+  outline: none;
+}
+
+.edit-field-input:focus,
+.edit-field-select:focus {
+  border-color: var(--brand-gold);
+  background: #ffffff;
+}
+
+.edit-items-card {
+  background: #ffffff;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-items-header {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.edit-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px dashed var(--border-light);
+}
+
+.edit-item-row:last-child {
+  border-bottom: none;
+}
+
+.edit-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.edit-item-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text-main);
+}
+
+.edit-item-price-tag {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.edit-item-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edit-qty-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.edit-qty-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-main);
+  border-color: var(--brand-gold);
+}
+
+.edit-item-qty {
+  font-size: 0.88rem;
+  font-weight: 800;
+  min-width: 20px;
+  text-align: center;
+}
+
+.edit-item-del-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: #fee2e2;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #dc2626;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.edit-item-del-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.edit-financials-card {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.edit-fin-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-fin-row label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.edit-fin-input,
+.edit-fin-select {
+  width: 140px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: right;
+  background: #ffffff;
+  color: var(--text-main);
+  outline: none;
+}
+
+.edit-fin-input:focus,
+.edit-fin-select:focus {
+  border-color: var(--brand-gold);
+}
+
+.edit-fin-row-total {
+  border-top: 1px solid var(--border-light);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.edit-fin-row-total label {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--brand-espresso);
+}
+
+.edit-fin-input-total {
+  font-size: 1.05rem;
+  color: var(--brand-espresso);
+  background: #ffffff;
+  border-color: var(--brand-gold);
+}
+
+.edit-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-light);
+  background: var(--surface-subtle);
+}
+
+.btn-save-edit {
+  padding: 9px 20px;
+  font-weight: 800;
+}
+
 /* ==========================================================================
    LANDING SHIFT SCREEN & TOPBAR SHIFT PILL
    ========================================================================== */
